@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
 import { pluginRegistry } from './PluginRegistry';
 import { useMapCapabilities } from './MapCore';
@@ -8,11 +8,12 @@ import { PluginInstanceConfig } from '../types';
 // --- Internal Component: Floating Window Wrapper ---
 const DraggableWindow = ({ config }: { config: PluginInstanceConfig }) => {
   const Definition = pluginRegistry.get(config.type);
-  const { updatePluginPosition, removePlugin } = useStore();
+  const { updatePluginPosition, removePlugin, bringToFront } = useStore();
   const capabilities = useMapCapabilities();
   
   // Local state for smooth dragging
   const [pos, setPos] = useState({ x: config.layout?.x || 20, y: config.layout?.y || 20 });
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isDragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   
@@ -48,28 +49,40 @@ const DraggableWindow = ({ config }: { config: PluginInstanceConfig }) => {
 
   return (
     <div 
-      className="absolute pointer-events-auto flex flex-col bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-200"
+      className="absolute pointer-events-auto flex flex-col bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-200 transition-[height] duration-200 ease-in-out"
       style={{ 
         left: pos.x, top: pos.y, 
-        width: config.layout?.w || 300, height: config.layout?.h || 400 
+        width: config.layout?.w || 300, 
+        height: isCollapsed ? 32 : (config.layout?.h || 400) 
       }}
+      onMouseDownCapture={() => bringToFront(config.id)}
     >
       <div 
-        className="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-3 cursor-move select-none hover:bg-slate-200 transition-colors"
+        className="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-3 cursor-move select-none hover:bg-slate-200 transition-colors shrink-0"
         onMouseDown={handleMouseDown}
       >
          <div className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase tracking-wider">
            {Icon && <Icon className="w-3.5 h-3.5" />}
            {config.title}
          </div>
-         <button 
-            onClick={() => removePlugin(config.id)} 
-            className="text-slate-400 hover:text-red-500 hover:bg-slate-300 rounded p-0.5 transition-colors"
-         >
-           <X className="w-4 h-4" />
-         </button>
+         <div className="flex items-center gap-1">
+           <button 
+              onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
+              className="text-slate-400 hover:text-blue-600 hover:bg-slate-300 rounded p-0.5 transition-colors"
+              title={isCollapsed ? "Expand" : "Collapse"}
+           >
+             {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+           </button>
+           <button 
+              onClick={(e) => { e.stopPropagation(); removePlugin(config.id); }} 
+              className="text-slate-400 hover:text-red-500 hover:bg-slate-300 rounded p-0.5 transition-colors"
+              title="Close"
+           >
+             <X className="w-3.5 h-3.5" />
+           </button>
+         </div>
       </div>
-      <div className="flex-1 relative overflow-hidden">
+      <div className={`flex-1 relative overflow-hidden ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
          {/* Inject Capability Context into the Plugin */}
          <PluginComponent config={config} capabilities={capabilities} />
       </div>

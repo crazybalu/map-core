@@ -17,6 +17,7 @@ interface AppState {
   updatePluginPosition: (id: string, x: number, y: number) => void;
   addPlugin: (plugin: PluginInstanceConfig) => void;
   removePlugin: (id: string) => void;
+  bringToFront: (id: string) => void;
   setSelectedCategory: (category: string | null) => void;
   setActivePoi: (poi: POI | null) => void;
 }
@@ -77,6 +78,16 @@ export const useStore = create<AppState>((set) => ({
   removePlugin: (id) => set((state) => ({ 
     layout: state.layout.filter(p => p.id !== id) 
   })),
+  bringToFront: (id) => set((state) => {
+    const index = state.layout.findIndex(p => p.id === id);
+    // If not found or already at the end (top), do nothing
+    if (index === -1 || index === state.layout.length - 1) return {};
+    
+    const newLayout = [...state.layout];
+    const [item] = newLayout.splice(index, 1);
+    newLayout.push(item);
+    return { layout: newLayout };
+  }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setActivePoi: (poi) => set({ activePoi: poi }),
 }));

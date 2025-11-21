@@ -1,10 +1,17 @@
 import { POI } from '../types';
 
-const generateMockPOIs = (count: number, extent: [number, number, number, number]): POI[] => {
+// --- "Database" State ---
+// We generate the data once and keep it here to simulate a persistent backend.
+let ALL_POIS: POI[] = [];
+
+const initDatabase = () => {
+  const count = 1000; // Total number of POIs in the "world"
+  const baseLat = 40.7128; // NYC Center
+  const baseLon = -74.0060;
+  const spread = 0.15; // Roughly +/- 15km
+
   const categories = ['Retail', 'Dining', 'Parks', 'Office', 'Residential'] as const;
-  const pois: POI[] = [];
-  
-  const [minLon, minLat, maxLon, maxLat] = extent;
+  const data: POI[] = [];
 
   for (let i = 0; i < count; i++) {
     const category = categories[Math.floor(Math.random() * categories.length)];
@@ -48,28 +55,41 @@ const generateMockPOIs = (count: number, extent: [number, number, number, number
             break;
     }
 
-    pois.push({
-      id: `poi-${Date.now()}-${i}`,
+    data.push({
+      id: `poi-${i}`,
       name: `${category} Spot ${i + 1}`,
       category: category,
-      // Generate lat/lng strictly within the requested extent
-      lat: minLat + Math.random() * (maxLat - minLat),
-      lng: minLon + Math.random() * (maxLon - minLon),
+      // Generate random position within the fixed "world" bounds
+      lat: baseLat + (Math.random() - 0.5) * spread,
+      lng: baseLon + (Math.random() - 0.5) * spread,
       value: Math.floor(Math.random() * 10000) + 1000,
       attributes
     });
   }
-  return pois;
+  
+  ALL_POIS = data;
+  console.log(`[API] Mock Database Initialized with ${count} records.`);
 };
 
 export const fetchPOIs = async (extent: [number, number, number, number]): Promise<POI[]> => {
-  console.log('[API] Fetching POIs for extent:', extent);
-  // Simulate network latency (e.g., 500ms)
+  // Initialize DB on first call
+  if (ALL_POIS.length === 0) {
+    initDatabase();
+  }
+
+  // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Generate ~50 points for the current view
-      const data = generateMockPOIs(50, extent);
-      resolve(data);
-    }, 500);
+      const [minLon, minLat, maxLon, maxLat] = extent;
+      
+      // Query the "Database"
+      const result = ALL_POIS.filter(p => 
+        p.lat >= minLat && p.lat <= maxLat &&
+        p.lng >= minLon && p.lng <= maxLon
+      );
+
+      console.log(`[API] Query returned ${result.length} POIs within current view.`);
+      resolve(result);
+    }, 300);
   });
 };
