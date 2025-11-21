@@ -4,7 +4,7 @@ import { PluginContextProps } from '../types';
 import { Search, MapPin, Filter } from 'lucide-react';
 
 const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
-  const { visiblePois, selectedCategory } = useStore();
+  const { visiblePois, selectedCategory, setActivePoi, activePoi } = useStore();
   const [search, setSearch] = useState('');
 
   const filtered = visiblePois.filter(p => {
@@ -15,6 +15,7 @@ const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
   });
 
   const handleItemClick = (poi: any) => {
+    setActivePoi(poi);
     capabilities.flyTo([poi.lng, poi.lat], 16);
   };
 
@@ -56,14 +57,18 @@ const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
             <div 
               key={poi.id} 
               onClick={() => handleItemClick(poi)}
-              className="p-3 bg-white border border-slate-100 rounded-md hover:border-blue-300 transition-colors group cursor-pointer"
+              className={`p-3 border rounded-md transition-all group cursor-pointer ${
+                activePoi?.id === poi.id 
+                  ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' 
+                  : 'bg-white border-slate-100 hover:border-blue-300'
+              }`}
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="text-sm font-medium text-slate-800 group-hover:text-blue-600">{poi.name}</h4>
+                  <h4 className={`text-sm font-medium ${activePoi?.id === poi.id ? 'text-blue-700' : 'text-slate-800 group-hover:text-blue-600'}`}>{poi.name}</h4>
                   <p className="text-xs text-slate-500 mt-0.5">{poi.category}</p>
                 </div>
-                <MapPin className="w-3 h-3 text-slate-300 group-hover:text-blue-500" />
+                <MapPin className={`w-3 h-3 ${activePoi?.id === poi.id ? 'text-blue-500' : 'text-slate-300 group-hover:text-blue-500'}`} />
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">

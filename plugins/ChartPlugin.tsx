@@ -2,15 +2,9 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { PluginContextProps } from '../types';
 import { useStore } from '../store'; 
-
-// Note: While we inject capabilities, for reactive state like 'visiblePois' 
-// usually the Store is still the most efficient "Event Bus" in React.
-// However, we use the 'capabilities.setFilter' for actions to decouple logic.
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+import { getPoiConfig } from '../config/poiConfig';
 
 const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
-  // Subscribing to data changes from the "Bus"
   const { visiblePois, selectedCategory } = useStore();
 
   const data = useMemo(() => {
@@ -64,13 +58,16 @@ const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => 
                 onClick={handleBarClick}
                 className="cursor-pointer"
               >
-                {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.name === selectedCategory ? '#2563eb' : COLORS[index % COLORS.length]} 
-                    fillOpacity={selectedCategory && entry.name !== selectedCategory ? 0.3 : 1}
-                  />
-                ))}
+                {data.map((entry, index) => {
+                  const color = getPoiConfig(entry.name).color;
+                  return (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={color} 
+                      fillOpacity={selectedCategory && entry.name !== selectedCategory ? 0.3 : 1}
+                    />
+                  );
+                })}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

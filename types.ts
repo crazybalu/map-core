@@ -4,10 +4,11 @@ import React, { ComponentType, ReactNode } from 'react';
 export interface POI {
   id: string;
   name: string;
-  category: 'Retail' | 'Dining' | 'Parks' | 'Office' | 'Residential';
+  category: string; // Flexible string to match configuration keys
   lat: number;
   lng: number;
   value: number;
+  attributes?: Record<string, any>; // Custom attributes specific to the category
 }
 
 export interface ChatMessage {
@@ -16,6 +17,16 @@ export interface ChatMessage {
   text: string;
   isThinking?: boolean;
 }
+
+// --- Configuration Types ---
+export interface PoiConfig {
+  label: string;
+  color: string;
+  iconPath: string; // SVG Path data (24x24 standard)
+  PopupComponent: ComponentType<{ data: POI }>; // Custom component for Map Popup
+}
+
+export type PoiConfigMap = Record<string, PoiConfig>;
 
 // --- Plugin System (Micro-kernel Contract) ---
 

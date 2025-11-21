@@ -6,7 +6,8 @@ interface AppState {
   visiblePois: POI[]; // POIs currently in map view
   mapExtent: number[] | null;
   layout: PluginInstanceConfig[]; 
-  selectedCategory: string | null; 
+  selectedCategory: string | null;
+  activePoi: POI | null; // The POI currently selected for the popup
   
   // Actions
   setPois: (pois: POI[]) => void;
@@ -17,33 +18,15 @@ interface AppState {
   addPlugin: (plugin: PluginInstanceConfig) => void;
   removePlugin: (id: string) => void;
   setSelectedCategory: (category: string | null) => void;
+  setActivePoi: (poi: POI | null) => void;
 }
 
-const generateMockPOIs = (count: number): POI[] => {
-  const categories = ['Retail', 'Dining', 'Parks', 'Office', 'Residential'] as const;
-  const pois: POI[] = [];
-  const centerLat = 40.7128;
-  const centerLng = -74.0060;
-
-  for (let i = 0; i < count; i++) {
-    pois.push({
-      id: `poi-${i}`,
-      name: `${categories[Math.floor(Math.random() * categories.length)]} Location ${i + 1}`,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      lat: centerLat + (Math.random() - 0.5) * 0.1,
-      lng: centerLng + (Math.random() - 0.5) * 0.1,
-      value: Math.floor(Math.random() * 10000) + 1000,
-    });
-  }
-  return pois;
-};
-
-export const useStore = create<AppState>((set) => ({
-  pois: generateMockPOIs(200),
-  visiblePois: [],
-  mapExtent: null,
-  selectedCategory: null,
-  layout: [
+// Helper for safe window usage to prevent off-screen initialization
+const getSafeInitialLayout = (): PluginInstanceConfig[] => {
+   const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
+   const h = typeof window !== 'undefined' ? window.innerHeight : 768;
+   
+   return [
      {
         id: 'chart-1',
         type: 'poi-chart',
@@ -60,9 +43,24 @@ export const useStore = create<AppState>((set) => ({
       id: 'chatbot-floating',
       type: 'ai-chat',
       title: 'AI Assistant',
-      layout: { x: window.innerWidth - 380, y: window.innerHeight - 600, w: 350, h: 500 }
+      // Ensure Y is at least 80px to avoid header being off-screen
+      layout: { 
+          x: Math.max(340, w - 380), 
+          y: Math.max(80, h - 550), 
+          w: 350, 
+          h: 500 
+      }
     }
-  ],
+  ];
+};
+
+export const useStore = create<AppState>((set) => ({
+  pois: [], // Start empty, will be populated by backend call
+  visiblePois: [],
+  mapExtent: null,
+  selectedCategory: null,
+  activePoi: null,
+  layout: getSafeInitialLayout(),
 
   setPois: (pois) => set({ pois }),
   setVisiblePois: (visiblePois) => set({ visiblePois }),
@@ -80,4 +78,5 @@ export const useStore = create<AppState>((set) => ({
     layout: state.layout.filter(p => p.id !== id) 
   })),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setActivePoi: (poi) => set({ activePoi: poi }),
 }));
