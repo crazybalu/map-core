@@ -59,6 +59,7 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<Map | null>(null);
   const vectorSourceRef = useRef<VectorSource | null>(null);
+  const tileLayerRef = useRef<TileLayer | null>(null);
   
   // Popup Refs
   const popupContainerRef = useRef<HTMLDivElement>(null);
@@ -68,7 +69,8 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
   const { 
     pois, setPois, setVisiblePois, setMapExtent, 
     selectedCategory, setSelectedCategory, 
-    activePoi, setActivePoi 
+    activePoi, setActivePoi,
+    theme
   } = useStore();
 
   // --- 1. Map Initialization (Kernel Boot) ---
@@ -86,6 +88,10 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
       },
     });
 
+    // Always use OSM for standard visibility
+    const tileLayer = new TileLayer({ source: new OSM() });
+    tileLayerRef.current = tileLayer;
+
     // Initialize Overlay
     const overlay = new Overlay({
       element: popupContainerRef.current!,
@@ -102,7 +108,7 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     const map = new Map({
       target: mapRef.current,
       layers: [
-        new TileLayer({ source: new OSM() }),
+        tileLayer,
         vectorLayer,
       ],
       overlays: [overlay],
@@ -131,7 +137,7 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
         console.log('[Kernel] Fetched POIs for view:', data.length);
         setPois(data);
         // Since backend returns data for this view, all are visible (subject to category filter)
-        setVisiblePois(data);
+        // Note: Logic inside "Data Sync" effect will handle visibility updates based on category
       });
     });
 
@@ -169,12 +175,18 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
   useEffect(() => {
     if (!vectorSourceRef.current) return;
     const source = vectorSourceRef.current;
+    
+    // Log for debugging
+    console.log('[Kernel] Data Sync triggered. POIs:', pois.length, 'Filter:', selectedCategory);
+
     source.clear();
 
     // Apply Client-Side Category Filter Logic on top of View Data
     const filteredPois = selectedCategory 
       ? pois.filter(p => p.category === selectedCategory)
       : pois;
+
+    console.log('[Kernel] Visible Features after filter:', filteredPois.length);
 
     const features = filteredPois.map(poi => {
       const feature = new Feature({
@@ -189,7 +201,6 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     source.addFeatures(features);
     
     // Update visible POIs for plugins whenever the category filter changes locally
-    // or when pois change (already handled by moveend logic, but good for safety)
     setVisiblePois(filteredPois);
 
   }, [pois, selectedCategory]);
@@ -217,6 +228,7 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
       });
     },
     setFilter: (category) => {
+      console.log('[Kernel] Capability setFilter invoked:', category);
       setSelectedCategory(category);
     },
     getVisibleData: () => {
@@ -232,42 +244,42 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     const CustomPopup = config.PopupComponent;
 
     return (
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200 w-[240px]">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden animate-in zoom-in-95 duration-200 w-[240px]">
         <div className="h-2 w-full" style={{ backgroundColor: config.color }}></div>
         <div className="p-3">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <h3 className="font-bold text-slate-800 text-sm leading-tight">{activePoi.name}</h3>
-              <span className="text-[10px] text-slate-500 font-medium">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{activePoi.name}</h3>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 {config.label}
               </span>
             </div>
             <button 
               onClick={() => setActivePoi(null)}
-              className="text-slate-400 hover:text-slate-600 -mt-1 -mr-1"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 -mt-1 -mr-1"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Configurable Custom Content Area */}
-          <div className="bg-slate-50 rounded-lg border border-slate-100 mb-3">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 mb-3 text-slate-600 dark:text-slate-300">
              <CustomPopup data={activePoi} />
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-slate-500 p-1">
-            <div className="flex flex-col items-center flex-1 border-r border-slate-100">
+          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 p-1">
+            <div className="flex flex-col items-center flex-1 border-r border-slate-100 dark:border-slate-700">
                 <TrendingUp className="w-3 h-3 text-green-500 mb-0.5" />
-                <span className="font-mono font-semibold text-slate-700">${activePoi.value}</span>
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">${activePoi.value}</span>
             </div>
             <div className="flex flex-col items-center flex-1">
                 <MapPin className="w-3 h-3 text-blue-500 mb-0.5" />
-                <span className="font-mono font-semibold text-slate-700">{activePoi.lat.toFixed(3)}</span>
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{activePoi.lat.toFixed(3)}</span>
             </div>
           </div>
         </div>
         {/* Little Triangle Pointer */}
-        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-slate-200 rotate-45"></div>
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-700 rotate-45"></div>
       </div>
     );
   };
@@ -276,7 +288,7 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     <MapContext.Provider value={capabilities}>
       <div className="relative w-full h-full">
         {/* The Base Map View */}
-        <div ref={mapRef} className="w-full h-full absolute inset-0 z-0 bg-slate-100" />
+        <div ref={mapRef} className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-slate-900" />
         
         {/* Popup Element (Hidden by OL until positioned) */}
         <div 

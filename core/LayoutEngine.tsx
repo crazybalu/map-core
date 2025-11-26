@@ -6,7 +6,7 @@ import { useMapCapabilities } from './MapCore';
 import { PluginInstanceConfig } from '../types';
 
 // --- Internal Component: Floating Window Wrapper ---
-const DraggableWindow = ({ config }: { config: PluginInstanceConfig }) => {
+const DraggableWindow: React.FC<{ config: PluginInstanceConfig }> = ({ config }) => {
   const Definition = pluginRegistry.get(config.type);
   const { updatePluginPosition, removePlugin, bringToFront } = useStore();
   const capabilities = useMapCapabilities();
@@ -22,6 +22,7 @@ const DraggableWindow = ({ config }: { config: PluginInstanceConfig }) => {
   }, [config.layout?.x, config.layout?.y]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    bringToFront(config.id); // Trigger z-index update only on header interaction
     isDragging.current = true;
     offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
     document.addEventListener('mousemove', handleMouseMove);
@@ -49,33 +50,32 @@ const DraggableWindow = ({ config }: { config: PluginInstanceConfig }) => {
 
   return (
     <div 
-      className="absolute pointer-events-auto flex flex-col bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-200 transition-[height] duration-200 ease-in-out"
+      className="absolute pointer-events-auto flex flex-col bg-white dark:bg-slate-900/95 dark:backdrop-blur-md rounded-lg shadow-2xl overflow-hidden border border-slate-200 dark:border-blue-500/30 transition-[height,background-color,border-color] duration-200 ease-in-out"
       style={{ 
         left: pos.x, top: pos.y, 
         width: config.layout?.w || 300, 
         height: isCollapsed ? 32 : (config.layout?.h || 400) 
       }}
-      onMouseDownCapture={() => bringToFront(config.id)}
     >
       <div 
-        className="h-8 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-3 cursor-move select-none hover:bg-slate-200 transition-colors shrink-0"
+        className="h-8 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-3 cursor-move select-none hover:bg-slate-200 dark:hover:bg-slate-700/80 transition-colors shrink-0"
         onMouseDown={handleMouseDown}
       >
-         <div className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase tracking-wider">
+         <div className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
            {Icon && <Icon className="w-3.5 h-3.5" />}
            {config.title}
          </div>
          <div className="flex items-center gap-1">
            <button 
               onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
-              className="text-slate-400 hover:text-blue-600 hover:bg-slate-300 rounded p-0.5 transition-colors"
+              className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-300 dark:hover:bg-slate-600 rounded p-0.5 transition-colors"
               title={isCollapsed ? "Expand" : "Collapse"}
            >
              {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
            </button>
            <button 
               onClick={(e) => { e.stopPropagation(); removePlugin(config.id); }} 
-              className="text-slate-400 hover:text-red-500 hover:bg-slate-300 rounded p-0.5 transition-colors"
+              className="text-slate-400 hover:text-red-500 hover:bg-slate-300 dark:hover:bg-slate-600 rounded p-0.5 transition-colors"
               title="Close"
            >
              <X className="w-3.5 h-3.5" />

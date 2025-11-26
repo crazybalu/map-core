@@ -1,42 +1,66 @@
 import { GoogleGenAI } from "@google/genai";
-
-const apiKey = process.env.API_KEY;
+import { GroundingChunk } from "../types";
 
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy_key' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+interface GeminiResponse {
+  text: string;
+  groundingChunks?: GroundingChunk[];
+}
 
 export const sendMessageToGemini = async (
   message: string,
-  context?: string
-): Promise<string> => {
-  if (!apiKey) {
-    return "Error: API Key not found. Please configure process.env.API_KEY.";
+  context?: string,
+  userLocation?: { lat: number; lng: number }
+): Promise<GeminiResponse> => {
+  if (!process.env.API_KEY) {
+    return { text: "Error: API Key not found. Please configure process.env.API_KEY." };
   }
 
   try {
     const systemInstruction = `You are an intelligent assistant for a Map BI application. 
-    You have access to data about Points of Interest (POIs) on the map.
+    You have access to data about Points of Interest (POIs) on the map via the context provided.
+    You also have access to Google Maps to find real-world information about places.
     Context provided: ${context || 'No specific context'}.
-    When analyzing, be thorough and use your reasoning capabilities.
+    When analyzing, combine the context data with real-world knowledge if relevant.
+    If using Google Maps to answer, ensure the information is relevant to the user's query.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: message,
-      config: {
-        systemInstruction: systemInstruction,
-        thinkingConfig: {
-          thinkingBudget: 32768, // Maximum budget for Gemini 3 Pro
-        }
-        // Note: maxOutputTokens is purposely omitted when using thinkingConfig 
-        // to allow the model to balance thinking and output tokens, 
-        // or it handles the budget internally.
-      },
-    });
+    // Configure tools
+    const config: any = {
+      systemInstruction: systemInstruction,
+      tools: [{ googleMaps: {} }],
+    };
 
-    return response.text || "I couldn't generate a response.";
+    // Add retrieval config if location is available
+    if (userLocation) {
+        config.toolConfig = {
+            retrievalConfig: {
+                latLng: {
+                    latitude: userLocation.lat,
+                    longitude: userLocation.lng
+                }
+            }
+        };
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: message,
+      config: config,
+    });
+    
+    // Extract grounding chunks if available
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] | undefined;
+
+    return {
+        text: response.text || "I couldn't generate a response.",
+        groundingChunks: chunks
+    };
+
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return `Error: ${error.message || 'Something went wrong with the AI service.'}`;
+    return { text: `Error: ${error.message || 'Something went wrong with the AI service.'}` };
   }
 };

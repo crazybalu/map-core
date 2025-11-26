@@ -11,11 +11,22 @@ export interface POI {
   attributes?: Record<string, any>; // Custom attributes specific to the category
 }
 
+export interface GroundingChunk {
+  web?: { uri: string; title: string };
+  maps?: {
+    sourceId: { id: string };
+    uri: string;
+    title: string;
+    placeAnswerSources?: { reviewSnippets?: { uri: string; source: string; reviewText: string }[] }[];
+  };
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
   isThinking?: boolean;
+  groundingChunks?: GroundingChunk[];
 }
 
 // --- Configuration Types ---

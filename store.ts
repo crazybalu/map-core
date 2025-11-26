@@ -8,6 +8,7 @@ interface AppState {
   layout: PluginInstanceConfig[]; 
   selectedCategory: string | null;
   activePoi: POI | null; // The POI currently selected for the popup
+  theme: 'light' | 'dark';
   
   // Actions
   setPois: (pois: POI[]) => void;
@@ -20,6 +21,7 @@ interface AppState {
   bringToFront: (id: string) => void;
   setSelectedCategory: (category: string | null) => void;
   setActivePoi: (poi: POI | null) => void;
+  toggleTheme: () => void;
 }
 
 // Helper for safe window usage to prevent off-screen initialization
@@ -62,6 +64,7 @@ export const useStore = create<AppState>((set) => ({
   selectedCategory: null,
   activePoi: null,
   layout: getSafeInitialLayout(),
+  theme: 'light',
 
   setPois: (pois) => set({ pois }),
   setVisiblePois: (visiblePois) => set({ visiblePois }),
@@ -88,6 +91,10 @@ export const useStore = create<AppState>((set) => ({
     newLayout.push(item);
     return { layout: newLayout };
   }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSelectedCategory: (category) => {
+    console.log('[Store] setSelectedCategory:', category);
+    set({ selectedCategory: category });
+  },
   setActivePoi: (poi) => set({ activePoi: poi }),
+  toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 }));
