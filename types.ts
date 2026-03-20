@@ -52,6 +52,9 @@ export interface MapCapabilities {
   setFilter: (category: string | null) => void;
   getVisibleData: () => POI[];
   currentExtent: number[] | null;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  setBaseLayer: (layerType: string) => void;
 }
 
 // Props injected into every Plugin Component

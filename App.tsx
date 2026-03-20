@@ -8,6 +8,7 @@ import { MapCoreProvider } from './core/MapCore';
 import { LayoutEngine } from './core/LayoutEngine';
 import { registerPlugins } from './plugins';
 import { pluginRegistry } from './core/PluginRegistry';
+import MapToolbar from './components/MapToolbar';
 
 // 1. Initialize Plugin System immediately
 registerPlugins();
@@ -45,12 +46,7 @@ function App() {
           <LayoutEngine />
 
           {/* GLOBAL UI: System level controls (Start Menu / Branding) */}
-          
-          {/* Header/Branding */}
-          <div className="absolute top-4 left-4 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center gap-2 pointer-events-none select-none transition-colors">
-            <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h1 className="font-bold text-slate-800 dark:text-slate-100">GeoInsight <span className="font-light text-slate-500 dark:text-slate-400">Kernel</span></h1>
-          </div>
+
 
           {/* Theme Toggle */}
           <button
@@ -60,6 +56,9 @@ function App() {
           >
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
+
+          {/* Map Controls Toolbar */}
+          <MapToolbar />
 
           {/* Add Widget FAB */}
           <div className="absolute bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-auto">

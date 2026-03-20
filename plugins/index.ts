@@ -1,11 +1,12 @@
 import { pluginRegistry } from '../core/PluginRegistry';
 import { PluginType } from '../types';
-import { BarChart3, List, Layout, MessageSquare } from 'lucide-react';
+import { BarChart3, List, Layout, MessageSquare, Layers } from 'lucide-react';
 
 import ChartPlugin from './ChartPlugin';
 import ListPlugin from './ListPlugin';
 import LayoutPlugin from './LayoutPlugin';
 import ChatPlugin from './ChatPlugin';
+import LayerSwitcherPlugin from './LayerSwitcherPlugin';
 
 export const registerPlugins = () => {
   pluginRegistry.register({
@@ -38,5 +39,14 @@ export const registerPlugins = () => {
     category: PluginType.CONTENT,
     component: ChatPlugin,
     icon: MessageSquare
+  });
+
+  pluginRegistry.register({
+    type: 'layer-switcher',
+    name: 'Map Layers',
+    category: PluginType.CONTENT,
+    component: LayerSwitcherPlugin,
+    icon: Layers,
+    defaultSize: { w: 280, h: 300 }
   });
 };

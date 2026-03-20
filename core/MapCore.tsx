@@ -3,6 +3,7 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
 import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -46,7 +47,7 @@ const getIconStyle = (category: string) => {
 
   return new Style({
     image: new IconStyle({
-      src: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
+      src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
       scale: 1,
       anchor: [0.5, 0.5] // Center anchor
     }),
@@ -75,100 +76,127 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
 
   // --- 1. Map Initialization (Kernel Boot) ---
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
 
-    const vectorSource = new VectorSource();
-    vectorSourceRef.current = vectorSource;
+    let map = mapInstanceRef.current;
 
-    const vectorLayer = new VectorLayer({
-      source: vectorSource,
-      style: (feature) => {
-        const category = feature.get('category');
-        return getIconStyle(category);
-      },
-    });
+    if (!map) {
+      const vectorSource = new VectorSource();
+      vectorSourceRef.current = vectorSource;
 
-    // Always use OSM for standard visibility
-    const tileLayer = new TileLayer({ source: new OSM() });
-    tileLayerRef.current = tileLayer;
-
-    // Initialize Overlay
-    const overlay = new Overlay({
-      element: popupContainerRef.current!,
-      autoPan: {
-        animation: {
-          duration: 250,
+      const vectorLayer = new VectorLayer({
+        source: vectorSource,
+        style: (feature) => {
+          const category = feature.get('category');
+          return getIconStyle(category);
         },
-      },
-      positioning: 'bottom-center',
-      offset: [0, -16], // Increased offset slightly due to larger icons
-    });
-    popupOverlayRef.current = overlay;
-
-    const map = new Map({
-      target: mapRef.current,
-      layers: [
-        tileLayer,
-        vectorLayer,
-      ],
-      overlays: [overlay],
-      view: new View({
-        center: fromLonLat([-74.0060, 40.7128]), // NYC
-        zoom: 13,
-      }),
-      controls: [],
-    });
-
-    mapInstanceRef.current = map;
-
-    // Event: Map Move
-    map.on('moveend', () => {
-      const size = map.getSize();
-      if (!size) return;
-
-      const extent = map.getView().calculateExtent(size);
-      setMapExtent(extent);
-      
-      const lonLatExtent = transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
-      // lonLatExtent is [minLon, minLat, maxLon, maxLat]
-      
-      // Fetch data from backend based on current view extent
-      fetchPOIs(lonLatExtent as [number, number, number, number]).then(data => {
-        console.log('[Kernel] Fetched POIs for view:', data.length);
-        setPois(data);
-        // Since backend returns data for this view, all are visible (subject to category filter)
-        // Note: Logic inside "Data Sync" effect will handle visibility updates based on category
       });
-    });
 
-    // Event: Map Click (Feature Selection)
-    map.on('click', (evt) => {
-      const feature = map.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
-      
-      if (feature) {
-        const id = feature.getId();
-        const poi = useStore.getState().pois.find(p => p.id === id);
-        if (poi) {
-          setActivePoi(poi);
-          return;
+      // Default to OSM
+      const tileLayer = new TileLayer({ source: new OSM() });
+      tileLayerRef.current = tileLayer;
+
+      // Initialize Overlay
+      const overlay = new Overlay({
+        element: popupContainerRef.current!,
+        autoPan: {
+          animation: {
+            duration: 250,
+          },
+        },
+        positioning: 'bottom-center',
+        offset: [0, -16], // Increased offset slightly due to larger icons
+      });
+      popupOverlayRef.current = overlay;
+
+      map = new Map({
+        layers: [
+          tileLayer,
+          vectorLayer,
+        ],
+        overlays: [overlay],
+        view: new View({
+          center: fromLonLat([-74.0060, 40.7128]), // NYC
+          zoom: 13,
+        }),
+        controls: [],
+      });
+
+      mapInstanceRef.current = map;
+
+      // Event: Map Move
+      map.on('moveend', () => {
+        const size = map!.getSize();
+        if (!size || size[0] === 0 || size[1] === 0) return;
+
+        const extent = map!.getView().calculateExtent(size);
+        setMapExtent(extent);
+        
+        const lonLatExtent = transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+        
+        // Fetch data from backend based on current view extent
+        fetchPOIs(lonLatExtent as [number, number, number, number]).then(data => {
+          console.log('[Kernel] Fetched POIs for view:', data.length);
+          setPois(data);
+        });
+      });
+
+      // Event: Map Click (Feature Selection)
+      map.on('click', (evt) => {
+        const feature = map!.forEachFeatureAtPixel(evt.pixel, (feature) => feature);
+        
+        if (feature) {
+          const id = feature.getId();
+          const poi = useStore.getState().pois.find(p => p.id === id);
+          if (poi) {
+            setActivePoi(poi);
+            return;
+          }
         }
-      }
-      
-      // If no feature clicked, close popup
-      setActivePoi(null);
-    });
+        
+        // If no feature clicked, close popup
+        setActivePoi(null);
+      });
 
-    // Pointer cursor for features
-    map.on('pointermove', function (e) {
-      const pixel = map.getEventPixel(e.originalEvent);
-      const hit = map.hasFeatureAtPixel(pixel);
-      map.getTargetElement().style.cursor = hit ? 'pointer' : '';
-    });
+      // Pointer cursor for features
+      map.on('pointermove', function (e) {
+        const pixel = map!.getEventPixel(e.originalEvent);
+        const hit = map!.hasFeatureAtPixel(pixel);
+        const target = map!.getTargetElement();
+        if (target) {
+          target.style.cursor = hit ? 'pointer' : '';
+        }
+      });
+    }
+
+    // Attach map to DOM
+    map.setTarget(mapRef.current);
 
     // Initial Tick to trigger moveend and load initial data
-    setTimeout(() => map.dispatchEvent('moveend'), 500);
+    // Wait for the map to be rendered and have a size
+    const initialFetch = () => {
+      if (!mapInstanceRef.current) return;
+      mapInstanceRef.current.updateSize();
+      const size = mapInstanceRef.current.getSize();
+      if (size && size[0] > 0 && size[1] > 0) {
+        const extent = mapInstanceRef.current.getView().calculateExtent(size);
+        setMapExtent(extent);
+        
+        const lonLatExtent = transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+        
+        fetchPOIs(lonLatExtent as [number, number, number, number]).then(data => {
+          console.log('[Kernel] Initial Fetched POIs for view:', data.length);
+          setPois(data);
+        });
+      } else {
+        setTimeout(initialFetch, 100);
+      }
+    };
+    setTimeout(initialFetch, 100);
 
-    return () => map.setTarget(undefined);
+    return () => {
+      map!.setTarget(undefined);
+    };
   }, []);
 
   // --- 2. Data Sync (Kernel -> View) ---
@@ -234,7 +262,50 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     getVisibleData: () => {
       return useStore.getState().visiblePois;
     },
-    currentExtent: useStore.getState().mapExtent
+    currentExtent: useStore.getState().mapExtent,
+    zoomIn: () => {
+        const view = mapInstanceRef.current?.getView();
+        if (view) {
+            view.animate({ zoom: (view.getZoom() || 0) + 1, duration: 250 });
+        }
+    },
+    zoomOut: () => {
+        const view = mapInstanceRef.current?.getView();
+        if (view) {
+            view.animate({ zoom: (view.getZoom() || 0) - 1, duration: 250 });
+        }
+    },
+    setBaseLayer: (layerType: string) => {
+        if (!tileLayerRef.current) return;
+
+        let source;
+        switch (layerType) {
+            case 'satellite':
+                source = new XYZ({
+                    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    maxZoom: 19,
+                    attributions: 'Tiles © Esri'
+                });
+                break;
+            case 'light':
+                source = new XYZ({
+                    url: 'https://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                });
+                break;
+            case 'dark':
+                source = new XYZ({
+                    url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                });
+                break;
+            case 'osm':
+            default:
+                source = new OSM();
+                break;
+        }
+        tileLayerRef.current.setSource(source);
+    }
   };
 
   // --- Render Helpers ---

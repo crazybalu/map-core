@@ -53,6 +53,17 @@ const getSafeInitialLayout = (): PluginInstanceConfig[] => {
           w: 350, 
           h: 500 
       }
+    },
+    {
+      id: 'layers-floating',
+      type: 'layer-switcher',
+      title: 'Map Layers',
+      layout: {
+        x: Math.max(340, w - 320),
+        y: 20,
+        w: 280,
+        h: 220
+      }
     }
   ];
 };
