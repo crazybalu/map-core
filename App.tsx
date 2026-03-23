@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useStore } from './store';
-import { Layers, Plus, Sun, Moon } from 'lucide-react';
+import React, { useState } from 'react';
+import { useMapStore } from './stores/mapStore';
+import { Plus, Sun, Moon } from 'lucide-react';
 import { PluginInstanceConfig } from './types';
 
 // Core Kernel Imports
@@ -9,12 +9,14 @@ import { LayoutEngine } from './core/LayoutEngine';
 import { registerPlugins } from './plugins';
 import { pluginRegistry } from './core/PluginRegistry';
 import MapToolbar from './components/MapToolbar';
+import { PoiDataManager } from './components/PoiDataManager';
+import { PoiLayer } from './components/layers/PoiLayer';
 
 // 1. Initialize Plugin System immediately
 registerPlugins();
 
 function App() {
-  const { addPlugin, theme, toggleTheme } = useStore();
+  const { addPlugin, theme, toggleTheme } = useMapStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleAddPlugin = (type: string) => {
@@ -42,11 +44,16 @@ function App() {
         {/* KERNEL: MapCoreProvider acts as the system foundation */}
         <MapCoreProvider>
           
+          {/* BUSINESS LAYERS: Render data on the map */}
+          <PoiLayer />
+
+          {/* DATA MANAGER: Handles business logic and data fetching */}
+          <PoiDataManager />
+
           {/* ENGINE: Layout Engine manages the plugin windows/rendering */}
           <LayoutEngine />
 
           {/* GLOBAL UI: System level controls (Start Menu / Branding) */}
-
 
           {/* Theme Toggle */}
           <button

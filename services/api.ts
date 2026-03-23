@@ -93,3 +93,25 @@ export const fetchPOIs = async (extent: [number, number, number, number]): Promi
     }, 300);
   });
 };
+
+export const queryPOIsByText = async (text: string): Promise<POI[]> => {
+  if (ALL_POIS.length === 0) {
+    initDatabase();
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const lower = text.toLowerCase();
+      const result = ALL_POIS.filter(p => 
+        p.name.toLowerCase().includes(lower) || 
+        p.category.toLowerCase().includes(lower) ||
+        (p.attributes && Object.values(p.attributes).some(v => String(v).toLowerCase().includes(lower)))
+      );
+      console.log(`[API] Text query '${text}' returned ${result.length} POIs.`);
+      resolve(result);
+    }, 300);
+  });
+};
+
+export const queryPOIsByExtent = async (extent: [number, number, number, number]): Promise<POI[]> => {
+  return fetchPOIs(extent);
+};

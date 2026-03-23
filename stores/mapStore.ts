@@ -1,30 +1,24 @@
 import { create } from 'zustand';
-import { POI, PluginInstanceConfig } from './types';
+import { PluginInstanceConfig } from '../types';
 
-interface AppState {
-  pois: POI[];
-  visiblePois: POI[]; // POIs currently in map view
+interface MapState {
   mapExtent: number[] | null;
-  layout: PluginInstanceConfig[]; 
-  selectedCategory: string | null;
-  activePoi: POI | null; // The POI currently selected for the popup
+  layout: PluginInstanceConfig[];
   theme: 'light' | 'dark';
-  
-  // Actions
-  setPois: (pois: POI[]) => void;
-  setVisiblePois: (pois: POI[]) => void;
+  activeDrawingMode: 'Box' | 'Circle' | null;
+  drawnExtent: number[] | null;
+
   setMapExtent: (extent: number[]) => void;
   updateLayout: (layout: PluginInstanceConfig[]) => void;
   updatePluginPosition: (id: string, x: number, y: number) => void;
   addPlugin: (plugin: PluginInstanceConfig) => void;
   removePlugin: (id: string) => void;
   bringToFront: (id: string) => void;
-  setSelectedCategory: (category: string | null) => void;
-  setActivePoi: (poi: POI | null) => void;
   toggleTheme: () => void;
+  setActiveDrawingMode: (mode: 'Box' | 'Circle' | null) => void;
+  setDrawnExtent: (extent: number[] | null) => void;
 }
 
-// Helper for safe window usage to prevent off-screen initialization
 const getSafeInitialLayout = (): PluginInstanceConfig[] => {
    const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
    const h = typeof window !== 'undefined' ? window.innerHeight : 768;
@@ -46,7 +40,6 @@ const getSafeInitialLayout = (): PluginInstanceConfig[] => {
       id: 'chatbot-floating',
       type: 'ai-chat',
       title: 'AI Assistant',
-      // Ensure Y is at least 80px to avoid header being off-screen
       layout: { 
           x: Math.max(340, w - 380), 
           y: Math.max(80, h - 550), 
@@ -68,17 +61,13 @@ const getSafeInitialLayout = (): PluginInstanceConfig[] => {
   ];
 };
 
-export const useStore = create<AppState>((set) => ({
-  pois: [], // Start empty, will be populated by backend call
-  visiblePois: [],
+export const useMapStore = create<MapState>((set) => ({
   mapExtent: null,
-  selectedCategory: null,
-  activePoi: null,
   layout: getSafeInitialLayout(),
   theme: 'light',
+  activeDrawingMode: null,
+  drawnExtent: null,
 
-  setPois: (pois) => set({ pois }),
-  setVisiblePois: (visiblePois) => set({ visiblePois }),
   setMapExtent: (mapExtent) => set({ mapExtent }),
   updateLayout: (layout) => set({ layout }),
   updatePluginPosition: (id, x, y) => set((state) => ({
@@ -94,18 +83,13 @@ export const useStore = create<AppState>((set) => ({
   })),
   bringToFront: (id) => set((state) => {
     const index = state.layout.findIndex(p => p.id === id);
-    // If not found or already at the end (top), do nothing
     if (index === -1 || index === state.layout.length - 1) return {};
-    
     const newLayout = [...state.layout];
     const [item] = newLayout.splice(index, 1);
     newLayout.push(item);
     return { layout: newLayout };
   }),
-  setSelectedCategory: (category) => {
-    console.log('[Store] setSelectedCategory:', category);
-    set({ selectedCategory: category });
-  },
-  setActivePoi: (poi) => set({ activePoi: poi }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+  setActiveDrawingMode: (mode) => set({ activeDrawingMode: mode }),
+  setDrawnExtent: (extent) => set({ drawnExtent: extent }),
 }));

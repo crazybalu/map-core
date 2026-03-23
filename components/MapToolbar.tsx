@@ -1,9 +1,13 @@
 import React from 'react';
 import { useMapCapabilities } from '../core/MapCore';
-import { Plus, Minus, Home, Crosshair } from 'lucide-react';
+import { useMapStore } from '../stores/mapStore';
+import { usePoiStore } from '../stores/poiStore';
+import { Plus, Minus, Home, Crosshair, Circle, Square, Trash2 } from 'lucide-react';
 
 const MapToolbar: React.FC = () => {
-  const { zoomIn, zoomOut, flyTo } = useMapCapabilities();
+  const { zoomIn, zoomOut, flyTo, startDrawing, clearDrawing } = useMapCapabilities();
+  const { activeDrawingMode } = useMapStore();
+  const { setSearchQuery, setPois } = usePoiStore();
 
   const handleHome = () => {
     // Fly to initial NYC coordinates
@@ -27,6 +31,8 @@ const MapToolbar: React.FC = () => {
   };
 
   const btnClass = "p-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300";
+  const getBtnClass = (isActive: boolean) => 
+    `p-2 transition-colors ${isActive ? 'bg-blue-500 text-white hover:bg-blue-600' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`;
 
   return (
     <div className="absolute bottom-24 right-6 z-40 flex flex-col bg-white/90 dark:bg-slate-800/90 backdrop-blur rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden pointer-events-auto">
@@ -44,6 +50,22 @@ const MapToolbar: React.FC = () => {
       <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
       <button onClick={handleLocation} className={btnClass} title="My Location">
         <Crosshair className="w-5 h-5" />
+      </button>
+      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <button onClick={() => startDrawing('Circle')} className={getBtnClass(activeDrawingMode === 'Circle')} title="Circle Selection">
+        <Circle className="w-5 h-5" />
+      </button>
+      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <button onClick={() => startDrawing('Box')} className={getBtnClass(activeDrawingMode === 'Box')} title="Box Selection">
+        <Square className="w-5 h-5" />
+      </button>
+      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <button onClick={() => {
+        clearDrawing();
+        setSearchQuery('');
+        setPois([]);
+      }} className={btnClass} title="Clear Selection">
+        <Trash2 className="w-5 h-5" />
       </button>
     </div>
   );

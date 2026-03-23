@@ -1,6 +1,6 @@
 import React from 'react';
 import { PoiConfigMap, POI } from '../types';
-import { ShoppingBag, Utensils, Trees, Building2, Home, Star, Clock, Info } from 'lucide-react';
+import { Star, Clock, Info } from 'lucide-react';
 
 // --- Custom Popup Components ---
 

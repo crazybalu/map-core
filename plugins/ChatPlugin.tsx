@@ -1,164 +1,191 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PluginContextProps, ChatMessage } from '../types';
-import { Send, Bot, User, Sparkles, Loader2, MapPin, ExternalLink } from 'lucide-react';
+import { usePoiStore } from '../stores/poiStore';
+import { useMapCapabilities } from '../core/MapCore';
+import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { ChatMessage, PluginContextProps } from '../types';
 import { sendMessageToGemini } from '../services/geminiService';
-import { useStore } from '../store';
+import ReactMarkdown from 'react-markdown';
 
-const ChatPlugin: React.FC<PluginContextProps> = ({ config }) => {
-  const { visiblePois } = useStore();
+export const ChatPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
+  const { visiblePois } = usePoiStore();
+  const { flyTo } = useMapCapabilities();
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'init', role: 'model', text: 'Hello! I am your GeoInsight assistant. I can analyze map data and look up real-world places using Google Maps.' }
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Hello! I am your AI Map Assistant. Ask me about the data currently visible on the map, or tell me to find something specific.',
+      timestamp: Date.now()
+    }
   ]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | undefined>(undefined);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get User Location on Mount
-  useEffect(() => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                setUserLocation({
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude
-                });
-            },
-            (err) => {
-                console.warn("Geolocation permission denied or failed", err);
-            }
-        );
-    }
-  }, []);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: input };
+    if (!input.trim() || isLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: Date.now()
+    };
+
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setLoading(true);
+    setIsLoading(true);
 
-    const contextSummary = `
-      Currently visible BI Data Points: ${visiblePois.length}.
-      Categories present in BI Data: ${Array.from(new Set(visiblePois.map(p => p.category))).join(', ')}.
-      Top 5 high value BI locations: ${visiblePois.sort((a,b) => b.value - a.value).slice(0,5).map(p => `${p.name} (${p.value})`).join(', ')}.
-    `;
+    try {
+      // 1. Prepare Context (Visible POIs)
+      const contextStr = visiblePois.map(p => 
+        `- ${p.name} (${p.category}): Lat ${p.lat.toFixed(4)}, Lng ${p.lng.toFixed(4)}, Value $${p.value}`
+      ).join('\n');
 
-    const response = await sendMessageToGemini(input, contextSummary, userLocation);
-    
-    const botMsg: ChatMessage = { 
-      id: (Date.now() + 1).toString(), 
-      role: 'model', 
-      text: response.text,
-      groundingChunks: response.groundingChunks,
-      isThinking: false 
-    };
-    
-    setMessages(prev => [...prev, botMsg]);
-    setLoading(false);
+      const systemPrompt = `
+You are an AI assistant embedded in a map application.
+Your goal is to help the user understand the data currently visible on their screen.
+
+CURRENT VISIBLE DATA (${visiblePois.length} items):
+${contextStr}
+
+INSTRUCTIONS:
+1. Answer the user's question based ONLY on the data provided above.
+2. If the user asks for something not in the data, politely inform them it's not currently visible.
+3. You can format your response using Markdown (bold, lists, etc.).
+4. Keep your answers concise and helpful.
+5. If the user asks to "find" or "go to" a specific place, and it exists in the data, provide its exact coordinates in this format: [LAT, LNG] at the very end of your message.
+      `;
+
+      // 2. Call Gemini API
+      const response = await sendMessageToGemini(input, contextStr);
+      const responseText = response.text;
+
+      // 3. Parse Response for Actions (e.g., FlyTo)
+      let finalContent = responseText;
+      const coordMatch = responseText.match(/\[(-?\d+\.\d+),\s*(-?\d+\.\d+)\]$/);
+      
+      if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[2]);
+        flyTo([lng, lat], 16);
+        // Remove the coordinates from the displayed message
+        finalContent = responseText.replace(coordMatch[0], '').trim();
+      }
+
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: finalContent,
+        timestamp: Date.now()
+      };
+
+      setMessages(prev => [...prev, aiMsg]);
+
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please check your API key and try again.',
+        timestamp: Date.now()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-transparent overflow-hidden">
-      {/* Updated Header with Primary Blue */}
-      <div className="bg-blue-600 dark:bg-blue-900/80 p-4 flex items-center gap-2 text-white shrink-0">
-        <div className="p-1.5 bg-white/20 rounded-lg">
-          <Sparkles className="w-4 h-4" />
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800">
+      
+      {/* Header */}
+      <div className="flex items-center gap-2 p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm z-10">
+        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-           <h3 className="font-semibold text-sm leading-tight">AI Assistant</h3>
-           <p className="text-[10px] text-blue-100 opacity-90">Maps Grounding Enabled</p>
+          <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Map Assistant</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Powered by Gemini</p>
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'model' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-              {msg.role === 'model' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {messages.map((msg) => (
+          <div 
+            key={msg.id} 
+            className={`flex gap-3 max-w-[90%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
+              msg.role === 'user' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+            }`}>
+              {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
-            <div className={`max-w-[85%] flex flex-col items-start gap-1`}>
-                <div className={`rounded-2xl p-3 text-sm shadow-sm ${
-                msg.role === 'user' 
-                    ? 'bg-blue-600 text-white rounded-tr-none' 
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-none'
-                }`}>
-                    {msg.text}
+            
+            <div className={`p-3 rounded-2xl text-sm shadow-sm ${
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white rounded-tr-sm'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-sm'
+            }`}>
+              {msg.role === 'user' ? (
+                msg.content
+              ) : (
+                <div className="markdown-body prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-slate-100 dark:prose-pre:bg-slate-900">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
-
-                {/* Grounding Sources (Google Maps) */}
-                {msg.groundingChunks && msg.groundingChunks.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 mt-1 w-full shadow-sm">
-                        <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            Sources
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            {msg.groundingChunks.map((chunk, i) => {
-                                if (chunk.maps) {
-                                    return (
-                                        <a 
-                                            key={i} 
-                                            href={chunk.maps.uri} 
-                                            target="_blank" 
-                                            rel="noreferrer" 
-                                            className="flex items-center justify-between text-xs p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded transition-colors group"
-                                        >
-                                            <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline truncate">{chunk.maps.title}</span>
-                                            <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        </a>
-                                    );
-                                }
-                                return null;
-                            })}
-                        </div>
-                    </div>
-                )}
+              )}
             </div>
           </div>
         ))}
-        {loading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4" />
+        {isLoading && (
+          <div className="flex gap-3 max-w-[80%]">
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-sm">
+              <Bot className="w-4 h-4 text-slate-400" />
             </div>
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-none p-3 shadow-sm flex items-center gap-2">
-              <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-              <span className="text-xs text-slate-500 dark:text-slate-400 italic">Finding answer...</span>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-tl-sm shadow-sm flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+              <span className="text-sm text-slate-500 dark:text-slate-400 font-medium animate-pulse">Thinking...</span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 bg-white dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 shrink-0">
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            className="flex-1 bg-slate-100 dark:bg-slate-900/50 border-0 rounded-lg px-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
-            placeholder="Ask about places or data..."
+      {/* Input Area */}
+      <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div className="relative flex items-center">
+          <input
+            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            disabled={loading}
+            placeholder="Ask about the map data..."
+            className="w-full pl-4 pr-12 py-3 bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-sm outline-none transition-all shadow-inner text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+            disabled={isLoading}
           />
-          <button 
+          <button
             onClick={handleSend}
-            disabled={loading || !input.trim()}
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 text-white rounded-lg px-4 flex items-center justify-center transition-colors"
+            disabled={isLoading || !input.trim()}
+            className="absolute right-2 p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-lg transition-colors shadow-sm"
           >
             <Send className="w-4 h-4" />
           </button>
+        </div>
+        <div className="mt-2 text-center">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">
+            Context: {visiblePois.length} POIs visible
+          </span>
         </div>
       </div>
     </div>
   );
 };
-
-export default ChatPlugin;

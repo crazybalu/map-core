@@ -16,10 +16,11 @@
 
 ### 2.1 架构层次
 1.  **基础设施层 (Infrastructure)**：包括 React 19 运行时、Vite 构建工具、Tailwind CSS 样式引擎。
-2.  **核心内核层 (Kernel - MapCore)**：负责 OpenLayers 地图实例的初始化、投影转换、全局坐标同步及底图管理。
-3.  **引擎层 (Engine - LayoutEngine)**：负责插件窗口的生命周期管理、层级控制（Z-Index）、拖拽缩放逻辑及持久化布局。
-4.  **插件层 (Plugins)**：具体的业务功能单元，如 `ChartPlugin` (图表)、`ChatPlugin` (AI)、`ListPlugin` (数据列表) 等。
-5.  **状态管理层 (State - Zustand)**：统一管理主题、插件实例状态、地图视图状态等全局数据。
+2.  **核心内核层 (Kernel - MapCore)**：负责 OpenLayers 地图实例的初始化、投影转换、全局坐标同步及底图管理。**MapCore 是纯粹的空间底座，不包含任何业务数据请求逻辑。**
+3.  **数据提供层 (Data Providers)**：如 `PoiDataManager`，负责监听全局空间状态（如视野范围、绘制区域），发起业务数据请求，并将结果同步到全局状态中。
+4.  **引擎层 (Engine - LayoutEngine)**：负责插件窗口的生命周期管理、层级控制（Z-Index）、拖拽缩放逻辑及持久化布局。
+5.  **插件层 (Plugins)**：具体的业务功能单元，如 `ChartPlugin` (图表)、`ChatPlugin` (AI)、`ListPlugin` (数据列表) 等。
+6.  **状态管理层 (State - Zustand)**：统一管理主题、插件实例状态、地图视图状态（空间状态）及业务数据。
 
 ---
 
@@ -52,10 +53,11 @@
 ---
 
 ## 5. 数据流向设计
-1.  **用户交互**：用户点击“添加插件”按钮。
-2.  **状态变更**：Zustand Store 更新 `plugins` 数组，生成新的插件配置。
-3.  **组件渲染**：`LayoutEngine` 监听 Store 变化，动态映射并渲染对应的插件组件。
-4.  **跨插件通信**：插件 A 修改 Store 中的共享数据（或操作 MapCore 实例），插件 B 响应式更新（例如：点击列表项，地图自动跳转位置，图表更新数据）。
+1.  **空间交互**：用户在地图上拖拽、缩放或框选。`MapCore` 捕获事件，将纯粹的空间状态（如 `mapExtent`, `drawnExtent`）更新到 Zustand Store。
+2.  **数据请求**：`PoiDataManager` 监听到空间状态变化，发起 API 请求获取 POI 数据，并将结果写入 Store 的 `pois` 或 `searchResults` 中。
+3.  **UI 渲染**：`MapCore` 监听到 Store 中 `pois` 数据的变化，将其渲染为地图上的矢量点位。
+4.  **插件响应**：各插件（如 `ListPlugin`, `ChartPlugin`）监听到 Store 中数据的变化，自动更新列表和图表。
+5.  **跨插件通信**：插件 A 修改 Store 中的共享数据（或操作 MapCore 实例），插件 B 响应式更新（例如：在列表中点击某一项，调用 MapCore 的 `flyTo` 方法，地图自动跳转位置）。
 
 ---
 

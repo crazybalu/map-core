@@ -2,10 +2,10 @@ import { pluginRegistry } from '../core/PluginRegistry';
 import { PluginType } from '../types';
 import { BarChart3, List, Layout, MessageSquare, Layers } from 'lucide-react';
 
-import ChartPlugin from './ChartPlugin';
-import ListPlugin from './ListPlugin';
+import { ChartPlugin } from './ChartPlugin';
+import { ListPlugin } from './ListPlugin';
 import LayoutPlugin from './LayoutPlugin';
-import ChatPlugin from './ChatPlugin';
+import { ChatPlugin } from './ChatPlugin';
 import LayerSwitcherPlugin from './LayerSwitcherPlugin';
 
 export const registerPlugins = () => {

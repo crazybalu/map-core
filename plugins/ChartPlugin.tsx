@@ -1,108 +1,99 @@
 import React, { useMemo } from 'react';
+import { usePoiStore } from '../stores/poiStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { PluginContextProps } from '../types';
-import { useStore } from '../store'; 
 import { getPoiConfig } from '../config/poiConfig';
+import { PluginContextProps } from '../types';
 
-const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
-  // Use 'pois' (all data in view) instead of 'visiblePois' so the chart 
-  // maintains context of other categories when a filter is applied.
-  const { pois, selectedCategory, theme } = useStore();
+export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
+  const { pois, selectedCategory, setSelectedCategory } = usePoiStore();
 
   const data = useMemo(() => {
-    const counts: Record<string, number> = {};
-    pois.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    const counts = pois.reduce((acc, poi) => {
+      acc[poi.category] = (acc[poi.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts)
+      .map(([category, count]) => ({
+        category,
+        count,
+        config: getPoiConfig(category)
+      }))
+      .sort((a, b) => b.count - a.count);
   }, [pois]);
 
-  const handleBarClick = (entry: any) => {
-    if (!entry || !entry.name) return;
+  const total = pois.length;
 
-    const category = entry.name;
-    if (selectedCategory === category) {
-      capabilities.setFilter(null);
-    } else {
-      capabilities.setFilter(category);
-    }
-  };
-
-  const isDark = theme === 'dark';
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+        No data available in current view
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full w-full p-4 bg-white dark:bg-transparent text-slate-800 dark:text-slate-200">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{config.title}</h3>
-        <div className="flex gap-2">
-          {selectedCategory && (
-            <button 
-              onClick={() => capabilities.setFilter(null)}
-              className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-            >
-              Clear Filter
-            </button>
-          )}
-          <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">
-            {pois.length} Items
-          </span>
-        </div>
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-4">
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold">Distribution</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Total POIs: {total}</p>
       </div>
+      
       <div className="flex-1 min-h-0">
-        {data.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <XAxis 
-                dataKey="name" 
-                fontSize={10} 
-                tickLine={false} 
-                axisLine={false} 
-                stroke={isDark ? '#94a3b8' : '#64748b'} 
-              />
-              <YAxis 
-                fontSize={10} 
-                tickLine={false} 
-                axisLine={false} 
-                stroke={isDark ? '#94a3b8' : '#64748b'}
-              />
-              <Tooltip 
-                cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'transparent' }}
-                contentStyle={{ 
-                  borderRadius: '8px', 
-                  border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none', 
-                  backgroundColor: isDark ? '#1e293b' : '#fff',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                  color: isDark ? '#f1f5f9' : '#1e293b'
-                }}
-              />
-              <Bar 
-                dataKey="value" 
-                radius={[4, 4, 0, 0]} 
-                className="cursor-pointer"
-              >
-                {data.map((entry, index) => {
-                  const color = getPoiConfig(entry.name).color;
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+            <XAxis type="number" hide />
+            <YAxis 
+              dataKey="category" 
+              type="category" 
+              width={100}
+              tickFormatter={(val) => getPoiConfig(val).label}
+              tick={{ fill: '#64748b', fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
                   return (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={color} 
-                      fillOpacity={selectedCategory && entry.name !== selectedCategory ? 0.3 : 1}
-                      onClick={() => handleBarClick(entry)}
-                      style={{ cursor: 'pointer', pointerEvents: 'all' }}
-                    />
+                    <div className="bg-white dark:bg-slate-800 p-2 rounded shadow-lg border border-slate-200 dark:border-slate-700 text-sm">
+                      <span className="font-semibold">{data.config.label}:</span> {data.count}
+                    </div>
                   );
-                })}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-            No data in view
-          </div>
-        )}
+                }
+                return null;
+              }}
+            />
+            <Bar 
+              dataKey="count" 
+              radius={[0, 4, 4, 0]}
+              onClick={(data) => {
+                setSelectedCategory(selectedCategory === data.category ? null : data.category);
+              }}
+              className="cursor-pointer transition-opacity hover:opacity-80"
+            >
+              {data.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.config.color} 
+                  opacity={selectedCategory && selectedCategory !== entry.category ? 0.3 : 1}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+
+      {selectedCategory && (
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className="mt-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-center"
+        >
+          Clear Selection
+        </button>
+      )}
     </div>
   );
 };
-
-export default ChartPlugin;

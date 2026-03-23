@@ -1,4 +1,4 @@
-import React, { ComponentType, ReactNode } from 'react';
+import { ComponentType } from 'react';
 
 // --- Domain Entities ---
 export interface POI {
@@ -49,12 +49,12 @@ export enum PluginType {
 // Capabilities exposed by the Kernel to Plugins
 export interface MapCapabilities {
   flyTo: (center: [number, number], zoom?: number) => void;
-  setFilter: (category: string | null) => void;
-  getVisibleData: () => POI[];
   currentExtent: number[] | null;
   zoomIn: () => void;
   zoomOut: () => void;
   setBaseLayer: (layerType: string) => void;
+  startDrawing: (type: 'Circle' | 'Box') => void;
+  clearDrawing: () => void;
 }
 
 // Props injected into every Plugin Component
