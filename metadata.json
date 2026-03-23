@@ -1,7 +1,0 @@
-{
-  "name": "GeoInsight BI",
-  "description": "A plugin-based map BI framework featuring dynamic layout, data visualization, and AI-powered analysis.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
-}
