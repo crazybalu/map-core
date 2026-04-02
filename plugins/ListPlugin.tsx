@@ -1,15 +1,88 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { usePoiStore } from '../stores/poiStore';
+import { useMapStore } from '../stores/mapStore';
 import { useMapCapabilities } from '../core/MapCore';
 import { getPoiConfig } from '../config/poiConfig';
+import { fetchPOIs, queryPOIsByExtent, queryPOIsByText } from '../services/api';
+import { transformExtent } from 'ol/proj';
 import { Search } from 'lucide-react';
 import { PluginContextProps } from '../types';
 
 export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
-  const { visiblePois, selectedCategory, activePoi, setActivePoi, searchQuery, setSearchQuery } = usePoiStore();
-  const { flyTo } = useMapCapabilities();
+  const {
+    pois, visiblePois, selectedCategory, activePoi, searchResults,
+    setPois, setSearchResults, setActivePoi, searchQuery, setSearchQuery
+  } = usePoiStore();
+  const { mapExtent, drawnExtent } = useMapStore();
+  const { flyTo, addMarkers, clearMarkers, setActiveMarker } = useMapCapabilities();
 
-  const filteredPois = selectedCategory 
+  const isInitialMount = useRef(true);
+
+  // --- 1 & 2. Data Fetching: Combine mapExtent, searchQuery, and drawnExtent ---
+  useEffect(() => {
+    if (mapExtent) {
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+      }
+      const lonLatExtent = transformExtent(mapExtent, 'EPSG:3857', 'EPSG:4326') as [number, number, number, number];
+      
+      const options: { text?: string; drawnExtent?: [number, number, number, number] } = {};
+      
+      if (searchQuery.trim() !== '') {
+        options.text = searchQuery;
+      }
+      if (drawnExtent) {
+        options.drawnExtent = transformExtent(drawnExtent, 'EPSG:3857', 'EPSG:4326') as [number, number, number, number];
+      }
+
+      fetchPOIs(lonLatExtent, options).then(data => {
+        console.log('[ListPlugin] Fetched POIs with combined conditions:', data.length);
+        setPois(data);
+        // Clear searchResults so we rely on pois as the single source of truth
+        setSearchResults(null);
+      });
+    }
+  }, [mapExtent, searchQuery, drawnExtent, setPois, setSearchResults]);
+
+  // --- 3. bindPoiLayer: Sync data changes to the map layer via capabilities ---
+  useEffect(() => {
+    const baseData = searchResults !== null ? searchResults : pois;
+
+    const filteredPois = selectedCategory
+      ? baseData.filter(p => p.category === selectedCategory)
+      : baseData;
+
+    // Update visible pois in store for other plugins to consume
+    usePoiStore.getState().setVisiblePois(filteredPois);
+
+    const markers = filteredPois.map(poi => {
+      const config = getPoiConfig(poi.category);
+      const CustomPopup = config.PopupComponent;
+      return {
+        id: poi.id,
+        lat: poi.lat,
+        lng: poi.lng,
+        color: config.color,
+        iconPath: config.iconPath,
+        title: poi.name,
+        subtitle: config.label,
+        value: poi.value,
+        popupComponent: <CustomPopup data={poi} />,
+        onClick: () => setActivePoi(poi)
+      };
+    });
+
+    addMarkers(markers);
+  }, [pois, selectedCategory, searchResults, addMarkers]);
+
+  // --- Cleanup: clear the POI layer when this plugin unmounts ---
+  useEffect(() => {
+    return () => {
+      capabilities.clearMarkers();
+    };
+  }, [capabilities]);
+
+  const filteredPois = selectedCategory
     ? visiblePois.filter(p => p.category === selectedCategory)
     : visiblePois;
 
@@ -40,21 +113,33 @@ export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities 
         {filteredPois.map(poi => {
           const config = getPoiConfig(poi.category);
           const isActive = activePoi?.id === poi.id;
-          
+
           return (
-            <div 
+            <div
               key={poi.id}
               onClick={() => {
                 setActivePoi(poi);
+                const config = getPoiConfig(poi.category);
+                const CustomPopup = config.PopupComponent;
+                capabilities.setActiveMarker({
+                  id: poi.id,
+                  lat: poi.lat,
+                  lng: poi.lng,
+                  color: config.color,
+                  iconPath: config.iconPath,
+                  title: poi.name,
+                  subtitle: config.label,
+                  value: poi.value,
+                  popupComponent: <CustomPopup data={poi} />
+                });
                 flyTo([poi.lng, poi.lat], 16);
               }}
-              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive 
-                  ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm border border-blue-100 dark:border-blue-800/50' 
+              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm border border-blue-100 dark:border-blue-800/50'
                   : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
-              }`}
+                }`}
             >
-              <div 
+              <div
                 className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm"
                 style={{ backgroundColor: `${config.color}15`, color: config.color }}
               >

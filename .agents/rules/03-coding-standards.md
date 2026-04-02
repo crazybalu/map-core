@@ -1,5 +1,5 @@
 ---
-trigger: model_decision
+trigger: always_on
 description: 编码规范，包括数据流向、UI规范以及架构分层约束
 globs: "*.ts, *.tsx"
 ---
@@ -11,6 +11,7 @@ globs: "*.ts, *.tsx"
 - **Data Providers (数据提供层)**：负责业务数据的请求组件（如 `PoiDataManager`）。需独立监听空间状态（如视野范围 `mapExtent`、绘制区域 `drawnExtent`），并在获取数据后同步至 Store。
 - **LayoutEngine (引擎层)**：负责插件窗口的绝对定位与响应式生命周期，控制层级（Z-Index）、拖拽与缩放。
 - **Store (状态层)**：作为核心中枢驱动，主题、业务数据、地图视图状态等，均由 Zustand Store 统一管理。
+- **如果涉及到架构调整，请同步更新.agents\rules\03-coding-standards.md和.agents\rules\04-directory-structure.md
 
 ## 数据流向与更新限制
 1. **空间交互触发**：用户在地图上交互时，`MapCore` 捕获并将纯粹的空间状态同步到 Zustand Store。

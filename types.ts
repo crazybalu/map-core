@@ -1,4 +1,4 @@
-import { ComponentType } from 'react';
+import React, { ComponentType } from 'react';
 
 // --- Domain Entities ---
 export interface POI {
@@ -46,6 +46,11 @@ export enum PluginType {
   CONTENT = 'CONTENT'
 }
 
+// Options for POI layer rendering
+export interface PoiLayerOptions {
+  selectedCategory?: string | null;
+}
+
 // Capabilities exposed by the Kernel to Plugins
 export interface MapCapabilities {
   flyTo: (center: [number, number], zoom?: number) => void;
@@ -55,7 +60,31 @@ export interface MapCapabilities {
   setBaseLayer: (layerType: string) => void;
   startDrawing: (type: 'Circle' | 'Box') => void;
   clearDrawing: () => void;
+  // Marker Layer Management
+  addMarkers: (markers: MapMarker[]) => void;
+  clearMarkers: () => void;
+  setActiveMarker: (marker: MapMarker | null) => void;
 }
+
+export interface MapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  
+  // Icon styling
+  iconPath?: string;
+  color?: string;
+
+  // Popup content
+  title?: string;
+  subtitle?: string;
+  value?: number | string;
+  popupComponent?: React.ReactNode;
+  
+  // Interaction
+  onClick?: () => void;
+}
+
 
 // Props injected into every Plugin Component
 export interface PluginContextProps {

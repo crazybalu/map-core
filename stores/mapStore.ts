@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PluginInstanceConfig } from '../types';
+import { getSafeInitialLayout } from '../config/pluginConfig';
 
 interface MapState {
   mapExtent: number[] | null;
@@ -19,47 +20,6 @@ interface MapState {
   setDrawnExtent: (extent: number[] | null) => void;
 }
 
-const getSafeInitialLayout = (): PluginInstanceConfig[] => {
-   const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
-   const h = typeof window !== 'undefined' ? window.innerHeight : 768;
-   
-   return [
-     {
-        id: 'chart-1',
-        type: 'poi-chart',
-        title: 'Category Distribution',
-        layout: { x: 20, y: 20, w: 300, h: 300 }
-     },
-     {
-        id: 'list-1',
-        type: 'poi-list',
-        title: 'Location Details',
-        layout: { x: 20, y: 340, w: 300, h: 400 }
-     },
-    {
-      id: 'chatbot-floating',
-      type: 'ai-chat',
-      title: 'AI Assistant',
-      layout: { 
-          x: Math.max(340, w - 380), 
-          y: Math.max(80, h - 550), 
-          w: 350, 
-          h: 500 
-      }
-    },
-    {
-      id: 'layers-floating',
-      type: 'layer-switcher',
-      title: 'Map Layers',
-      layout: {
-        x: Math.max(340, w - 320),
-        y: 20,
-        w: 280,
-        h: 220
-      }
-    }
-  ];
-};
 
 export const useMapStore = create<MapState>((set) => ({
   mapExtent: null,

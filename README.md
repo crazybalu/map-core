@@ -24,7 +24,7 @@
 2.  **核心内核层 (MapCore)**：负责 OpenLayers 初始化、投影转换、全局坐标同步及底图管理。
 3.  **数据提供层 (Data Providers)**：监听全局空间状态，异步请求业务数据（如 POI）并同步至全局状态。
 4.  **布局引擎 (LayoutEngine)**：管理插件窗口生命周期、Z-Index、拖拽缩放及布局持久化。
-5.  **插件层 (Plugins)**：具体业务单元，如 `ChartPlugin`, `ChatPlugin`, `ListPlugin`。
+5.  **插件层 (Plugins)**：具体业务单元，如 `ChartPlugin`, `ListPlugin`。
 6.  **状态管理层 (Zustand)**：统一管理主题、插件状态、地图视野及业务数据。
 
 ### 2. 核心模块设计

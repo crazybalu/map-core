@@ -71,22 +71,39 @@ const initDatabase = () => {
   console.log(`[API] Mock Database Initialized with ${count} records.`);
 };
 
-export const fetchPOIs = async (extent: [number, number, number, number]): Promise<POI[]> => {
-  // Initialize DB on first call
+export const fetchPOIs = async (
+  extent: [number, number, number, number],
+  options?: { text?: string; drawnExtent?: [number, number, number, number] }
+): Promise<POI[]> => {
   if (ALL_POIS.length === 0) {
     initDatabase();
   }
 
-  // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
       const [minLon, minLat, maxLon, maxLat] = extent;
       
-      // Query the "Database"
-      const result = ALL_POIS.filter(p => 
+      let result = ALL_POIS.filter(p => 
         p.lat >= minLat && p.lat <= maxLat &&
         p.lng >= minLon && p.lng <= maxLon
       );
+
+      if (options?.text) {
+        const lower = options.text.toLowerCase();
+        result = result.filter(p => 
+          p.name.toLowerCase().includes(lower) || 
+          p.category.toLowerCase().includes(lower) ||
+          (p.attributes && Object.values(p.attributes).some(v => String(v).toLowerCase().includes(lower)))
+        );
+      }
+
+      if (options?.drawnExtent) {
+        const [dMinLon, dMinLat, dMaxLon, dMaxLat] = options.drawnExtent;
+        result = result.filter(p => 
+          p.lat >= dMinLat && p.lat <= dMaxLat &&
+          p.lng >= dMinLon && p.lng <= dMaxLon
+        );
+      }
 
       console.log(`[API] Query returned ${result.length} POIs within current view.`);
       resolve(result);

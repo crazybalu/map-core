@@ -9,8 +9,7 @@ import { LayoutEngine } from './core/LayoutEngine';
 import { registerPlugins } from './plugins';
 import { pluginRegistry } from './core/PluginRegistry';
 import MapToolbar from './components/MapToolbar';
-import { PoiDataManager } from './components/PoiDataManager';
-import { PoiLayer } from './components/layers/PoiLayer';
+
 
 // 1. Initialize Plugin System immediately
 registerPlugins();
@@ -44,12 +43,6 @@ function App() {
         {/* KERNEL: MapCoreProvider acts as the system foundation */}
         <MapCoreProvider>
           
-          {/* BUSINESS LAYERS: Render data on the map */}
-          <PoiLayer />
-
-          {/* DATA MANAGER: Handles business logic and data fetching */}
-          <PoiDataManager />
-
           {/* ENGINE: Layout Engine manages the plugin windows/rendering */}
           <LayoutEngine />
 

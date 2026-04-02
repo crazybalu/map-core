@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useEffect, ReactNode, useState } from 'react';
+import React, { createContext, useContext, useRef, useEffect, ReactNode, useState, useCallback } from 'react';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -8,11 +8,14 @@ import { fromLonLat } from 'ol/proj';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
-import { Style, Fill, Stroke } from 'ol/style';
+import Point from 'ol/geom/Point';
+import Overlay from 'ol/Overlay';
+import { Style, Fill, Stroke, Icon as IconStyle } from 'ol/style';
 import Draw from 'ol/interaction/Draw';
 import DragBox from 'ol/interaction/DragBox';
 import { useMapStore } from '../stores/mapStore';
-import { MapCapabilities } from '../types';
+import { MapCapabilities, MapMarker } from '../types';
+import { X, MapPin, TrendingUp } from 'lucide-react';
 
 // Context to provide Map Capabilities to plugins
 const MapContext = createContext<MapCapabilities | null>(null);
@@ -31,6 +34,26 @@ export const useMapInstance = () => {
   return useContext(MapInstanceContext);
 };
 
+// --- Marker Icon Style Helper ---
+const getIconStyle = (color: string = '#3b82f6', iconPath: string = '') => {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="15" fill="${color}" stroke="white" stroke-width="2"/>
+      <g transform="translate(4, 4)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        ${iconPath}
+      </g>
+    </svg>
+  `.trim();
+
+  return new Style({
+    image: new IconStyle({
+      src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+      scale: 1,
+      anchor: [0.5, 0.5]
+    }),
+  });
+};
+
 interface MapCoreProps {
   children: ReactNode;
 }
@@ -42,12 +65,28 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
   const tileLayerRef = useRef<TileLayer | null>(null);
   const drawSourceRef = useRef<VectorSource | null>(null);
   const drawInteractionRef = useRef<Draw | DragBox | null>(null);
+
+  // --- Marker Layer Refs ---
+  const markerSourceRef = useRef<VectorSource | null>(null);
+  const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const popupContainerRef = useRef<HTMLDivElement>(null);
+  const popupOverlayRef = useRef<Overlay | null>(null);
+  
+  // --- Marker State ---
+  const [activeMarker, setActiveMarkerState] = useState<MapMarker | null>(null);
+  const activeMarkerRef = useRef<MapMarker | null>(null);
+  // Keep a ref to the current markers array for click handler lookups
+  const currentMarkersRef = useRef<MapMarker[]>([]);
   
   const { 
     setMapExtent, 
     setActiveDrawingMode, 
     setDrawnExtent
   } = useMapStore();
+
+  useEffect(() => {
+    activeMarkerRef.current = activeMarker;
+  }, [activeMarker]);
 
   // --- 1. Map Initialization (Kernel Boot) ---
   useEffect(() => {
@@ -68,9 +107,25 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
       zIndex: 20,
     });
 
+    // --- Marker Layer Setup ---
+    const markerSource = new VectorSource();
+    markerSourceRef.current = markerSource;
+
+    const markerLayer = new VectorLayer({
+      source: markerSource,
+      style: (feature) => {
+        const color = feature.get('color');
+        const iconPath = feature.get('iconPath');
+        return getIconStyle(color, iconPath);
+      },
+      zIndex: 10,
+    });
+    markerLayerRef.current = markerLayer;
+
     const map = new Map({
       layers: [
         tileLayer,
+        markerLayer,
         drawLayer,
       ],
       view: new View({
@@ -79,6 +134,53 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
       }),
       controls: [],
     });
+
+    // --- POI Popup Overlay ---
+    if (popupContainerRef.current) {
+      const overlay = new Overlay({
+        element: popupContainerRef.current,
+        autoPan: { animation: { duration: 250 } },
+        positioning: 'bottom-center',
+        offset: [0, -16],
+      });
+      popupOverlayRef.current = overlay;
+      map.addOverlay(overlay);
+    }
+
+    // Event: Map Click (Marker Feature Selection)
+    const handleMapClick = (evt: any) => {
+      const feature = map.forEachFeatureAtPixel(
+        evt.pixel, 
+        (feature) => feature,
+        { layerFilter: (layer) => layer === markerLayer }
+      );
+      
+      if (feature) {
+        const id = feature.getId();
+        const marker = currentMarkersRef.current.find(m => m.id === id);
+        if (marker) {
+          setActiveMarkerState(marker);
+          if (marker.onClick) {
+            marker.onClick();
+          }
+          return;
+        }
+      }
+      setActiveMarkerState(null);
+    };
+
+    // Pointer cursor for Marker features
+    const handlePointerMove = (e: any) => {
+      const pixel = map.getEventPixel(e.originalEvent);
+      const hit = map.hasFeatureAtPixel(pixel, { layerFilter: (layer) => layer === markerLayer });
+      const target = map.getTargetElement();
+      if (target) {
+        target.style.cursor = hit ? 'pointer' : '';
+      }
+    };
+
+    map.on('click', handleMapClick);
+    map.on('pointermove', handlePointerMove);
 
     // Event: Map Move
     map.on('moveend', () => {
@@ -106,8 +208,60 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
     setTimeout(initialFetch, 100);
 
     return () => {
+      map.un('click', handleMapClick);
+      map.un('pointermove', handlePointerMove);
       map.setTarget(undefined);
     };
+  }, []);
+
+  // --- Popup Position Sync ---
+  useEffect(() => {
+    const overlay = popupOverlayRef.current;
+    if (!overlay) return;
+
+    if (activeMarker) {
+      overlay.setPosition(fromLonLat([activeMarker.lng, activeMarker.lat]));
+    } else {
+      overlay.setPosition(undefined);
+    }
+  }, [activeMarker]);
+
+  // --- Marker Layer Capability: addMarkers ---
+  const addMarkers = useCallback((markers: MapMarker[]) => {
+    const source = markerSourceRef.current;
+    if (!source) return;
+
+    // Store markers for click handler lookups
+    currentMarkersRef.current = markers;
+
+    source.clear();
+
+    const features = markers.map(marker => {
+      const feature = new Feature({
+        geometry: new Point(fromLonLat([marker.lng, marker.lat])),
+      });
+      feature.setId(marker.id);
+      feature.set('color', marker.color);
+      feature.set('iconPath', marker.iconPath);
+      feature.set('name', marker.title);
+      return feature;
+    });
+
+    source.addFeatures(features);
+  }, []);
+
+  // --- Marker Layer Capability: clearMarkers ---
+  const clearMarkers = useCallback(() => {
+    if (markerSourceRef.current) {
+      markerSourceRef.current.clear();
+    }
+    currentMarkersRef.current = [];
+    setActiveMarkerState(null);
+  }, []);
+
+  // --- Marker Layer Capability: setActiveMarker ---
+  const handleSetActiveMarker = useCallback((marker: MapMarker | null) => {
+    setActiveMarkerState(marker);
   }, []);
 
   // --- 2. Expose Capabilities (Kernel API) ---
@@ -226,7 +380,58 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
       }
       setDrawnExtent(null);
       setActiveDrawingMode(null);
-    }
+    },
+    // Marker Layer capabilities
+    addMarkers,
+    clearMarkers,
+    setActiveMarker: handleSetActiveMarker,
+  };
+
+  // --- Render Popup Content ---
+  const renderPopupContent = () => {
+    if (!activeMarker) return null;
+
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden animate-in zoom-in-95 duration-200 w-[240px]">
+        <div className="h-2 w-full" style={{ backgroundColor: activeMarker.color || '#3b82f6' }}></div>
+        <div className="p-3">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight">{activeMarker.title}</h3>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                {activeMarker.subtitle}
+              </span>
+            </div>
+            <button 
+              onClick={() => setActiveMarkerState(null)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 -mt-1 -mr-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 mb-3 text-slate-600 dark:text-slate-300">
+             {activeMarker.popupComponent}
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 p-1">
+            {activeMarker.value !== undefined && (
+              <div className="flex flex-col items-center flex-1 border-r border-slate-100 dark:border-slate-700">
+                  <TrendingUp className="w-3 h-3 text-green-500 mb-0.5" />
+                  <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                     {typeof activeMarker.value === 'number' && !isNaN(parseFloat(activeMarker.value.toString())) ? `$${activeMarker.value}` : activeMarker.value}
+                  </span>
+              </div>
+            )}
+            <div className="flex flex-col items-center flex-1">
+                <MapPin className="w-3 h-3 text-blue-500 mb-0.5" />
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{activeMarker.lat.toFixed(3)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-b border-r border-slate-200 dark:border-slate-700 rotate-45"></div>
+      </div>
+    );
   };
 
   return (
@@ -236,6 +441,14 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
           {/* The Base Map View */}
           <div ref={mapRef} className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-slate-900" />
           
+          {/* POI Popup Overlay Container */}
+          <div 
+            ref={popupContainerRef} 
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50"
+          >
+            {renderPopupContent()}
+          </div>
+
           {/* Plugin Layer on top */}
           <div className="relative z-10 w-full h-full pointer-events-none">
              {children}
