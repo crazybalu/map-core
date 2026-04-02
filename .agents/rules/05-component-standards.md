@@ -1,6 +1,6 @@
 ---
 trigger: model_decision
-description: 组件规范与插件开发方式，规定了新模块、新窗口和插件的编写范式
+description: 组件规范与插件开发方式，规定了新模块、新窗口和插件的编写范式 
 globs: "plugins/**/*.{ts,tsx}"
 ---
 
