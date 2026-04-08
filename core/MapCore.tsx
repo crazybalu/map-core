@@ -16,6 +16,7 @@ import DragBox from 'ol/interaction/DragBox';
 import { useMapStore } from '../stores/mapStore';
 import { MapCapabilities, MapMarker } from '../types';
 import { X, MapPin, TrendingUp } from 'lucide-react';
+import { MAP_CONFIG } from '../config/mapConfig';
 
 // Context to provide Map Capabilities to plugins
 const MapContext = createContext<MapCapabilities | null>(null);
@@ -78,11 +79,9 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
   // Keep a ref to the current markers array for click handler lookups
   const currentMarkersRef = useRef<MapMarker[]>([]);
   
-  const { 
-    setMapExtent, 
-    setActiveDrawingMode, 
-    setDrawnExtent
-  } = useMapStore();
+  const setMapExtent = useMapStore(state => state.setMapExtent);
+  const setActiveDrawingMode = useMapStore(state => state.setActiveDrawingMode);
+  const setDrawnExtent = useMapStore(state => state.setDrawnExtent);
 
   useEffect(() => {
     activeMarkerRef.current = activeMarker;
@@ -129,8 +128,8 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
         drawLayer,
       ],
       view: new View({
-        center: fromLonLat([-74.0060, 40.7128]), // NYC
-        zoom: 13,
+        center: fromLonLat(MAP_CONFIG.initialCenter),
+        zoom: MAP_CONFIG.initialZoom,
       }),
       controls: [],
     });
@@ -346,21 +345,21 @@ export const MapCoreProvider: React.FC<MapCoreProps> = ({ children }) => {
         switch (layerType) {
             case 'satellite':
                 source = new XYZ({
-                    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                    maxZoom: 19,
-                    attributions: 'Tiles © Esri'
+                    url: MAP_CONFIG.baseLayers.satellite.url,
+                    maxZoom: MAP_CONFIG.baseLayers.satellite.maxZoom,
+                    attributions: MAP_CONFIG.baseLayers.satellite.attributions
                 });
                 break;
             case 'light':
                 source = new XYZ({
-                    url: 'https://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-                    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url: MAP_CONFIG.baseLayers.light.url,
+                    attributions: MAP_CONFIG.baseLayers.light.attributions
                 });
                 break;
             case 'dark':
                 source = new XYZ({
-                    url: 'https://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                    attributions: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url: MAP_CONFIG.baseLayers.dark.url,
+                    attributions: MAP_CONFIG.baseLayers.dark.attributions
                 });
                 break;
             case 'osm':

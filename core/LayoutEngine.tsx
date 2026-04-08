@@ -49,7 +49,7 @@ const DraggableWindow: React.FC<DraggableWindowProps> = ({ id, title, children, 
 
   return (
     <div
-      className="absolute bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden flex flex-col pointer-events-auto transition-shadow duration-200 hover:shadow-3xl"
+      className="absolute bg-white dark:bg-slate-900 rounded shadow-[0_4px_20px_rgba(37,99,235,0.08)] border border-blue-100 dark:border-slate-700/50 overflow-hidden flex flex-col pointer-events-auto transition-shadow duration-200"
       style={{
         left: pos.x,
         top: pos.y,
@@ -60,18 +60,18 @@ const DraggableWindow: React.FC<DraggableWindowProps> = ({ id, title, children, 
     >
       {/* Window Header */}
       <div 
-        className="flex items-center justify-between px-3 py-2 bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/50 dark:border-slate-700/50 cursor-grab active:cursor-grabbing group"
+        className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 dark:from-slate-800 dark:to-slate-800 border-b border-blue-700 dark:border-slate-700 cursor-grab active:cursor-grabbing group"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
         <div className="flex items-center gap-2">
-          <GripHorizontal className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 select-none tracking-wide">{title}</h3>
+          <GripHorizontal className="w-4 h-4 text-blue-200 group-hover:text-white dark:text-slate-400 dark:group-hover:text-slate-300 transition-colors" />
+          <h3 className="text-sm font-bold text-white tracking-wide">{title}</h3>
         </div>
         <button 
           onClick={() => removePlugin(id)}
-          className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-red-500 transition-colors"
+          className="p-1 rounded text-blue-100 hover:bg-blue-700 dark:hover:bg-slate-700 hover:text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>

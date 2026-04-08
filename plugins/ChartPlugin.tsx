@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { usePoiStore } from '../stores/poiStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { getPoiConfig } from '../config/poiConfig';
+import { getPoiConfig } from '../config/resources';
 import { PluginContextProps } from '../types';
 
 export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities }) => {
-  const { pois, selectedCategory, setSelectedCategory } = usePoiStore();
+  const { pois } = usePoiStore();
 
   const data = useMemo(() => {
     const counts = pois.reduce((acc, poi) => {
@@ -69,16 +69,14 @@ export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities
             <Bar 
               dataKey="count" 
               radius={[0, 4, 4, 0]}
-              onClick={(data) => {
-                setSelectedCategory(selectedCategory === data.category ? null : data.category);
-              }}
+
               className="cursor-pointer transition-opacity hover:opacity-80"
             >
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={entry.config.color} 
-                  opacity={selectedCategory && selectedCategory !== entry.category ? 0.3 : 1}
+                  opacity={1}
                 />
               ))}
             </Bar>
@@ -86,14 +84,7 @@ export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities
         </ResponsiveContainer>
       </div>
 
-      {selectedCategory && (
-        <button
-          onClick={() => setSelectedCategory(null)}
-          className="mt-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-center"
-        >
-          Clear Selection
-        </button>
-      )}
+
     </div>
   );
 };

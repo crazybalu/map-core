@@ -1,10 +1,11 @@
 import { PluginInstanceConfig, PluginType } from '../types';
-import { BarChart3, List, Layout, Layers } from 'lucide-react';
+import { BarChart3, List, Layout, Layers, FolderKanban } from 'lucide-react';
 
 import { ChartPlugin } from '../plugins/ChartPlugin';
 import { ListPlugin } from '../plugins/ListPlugin';
 import LayoutPlugin from '../plugins/LayoutPlugin';
 import LayerSwitcherPlugin from '../plugins/LayerSwitcherPlugin';
+import { ResourcePanelPlugin } from '../plugins/ResourcePanelPlugin';
 
 export const getSafeInitialLayout = (): PluginInstanceConfig[] => {
   const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -12,17 +13,23 @@ export const getSafeInitialLayout = (): PluginInstanceConfig[] => {
 
   return [
     {
-      id: 'chart-1',
-      type: 'poi-chart',
-      title: 'Category Distribution',
-      layout: { x: 20, y: 20, w: 300, h: 300 }
+      id: 'resource-panel-1',
+      type: 'resource-panel',
+      title: '资源面板',
+      layout: { x: 20, y: 20, w: 280, h: 420 }
     },
     {
       id: 'list-1',
       type: 'poi-list',
       title: 'Location Details',
-      layout: { x: 20, y: 340, w: 300, h: 400 }
+      layout: { x: 320, y: 20, w: 300, h: 400 }
     },
+    // {
+    //   id: 'chart-1',
+    //   type: 'poi-chart',
+    //   title: 'Category Distribution',
+    //   layout: { x: 20, y: 20, w: 300, h: 300 }
+    // },
     // {
     //   id: 'chatbot-floating',
     //   type: 'ai-chat',
@@ -49,6 +56,14 @@ export const getSafeInitialLayout = (): PluginInstanceConfig[] => {
 };
 
 export const pluginDefinitions = [
+  {
+    type: 'resource-panel',
+    name: '资源面板',
+    category: PluginType.CONTENT,
+    component: ResourcePanelPlugin,
+    icon: FolderKanban,
+    defaultSize: { w: 280, h: 420 }
+  },
   {
     type: 'poi-chart',
     name: 'POI Statistics',

@@ -1,134 +1,83 @@
 import { POI } from '../types';
 
-// --- "Database" State ---
-// We generate the data once and keep it here to simulate a persistent backend.
-let ALL_POIS: POI[] = [];
 
-const initDatabase = () => {
-  const count = 1000; // Total number of POIs in the "world"
-  const baseLat = 40.7128; // NYC Center
-  const baseLon = -74.0060;
-  const spread = 0.15; // Roughly +/- 15km
 
-  const categories = ['Retail', 'Dining', 'Parks', 'Office', 'Residential'] as const;
+// --- Resource Category Based Query ---
+
+const RESOURCE_CATEGORY_NAMES: Record<string, string[]> = {
+  'PoliceCase': ['盗窃警情', '交通事故', '纠纷报警', '治安事件', '诈骗警情', '伤害案件', '消防警情', '求助报警'],
+  'Surveillance': ['路口监控', '小区监控', '商铺监控', '学校监控', '治安监控', '交通监控', '园区监控', '银行监控'],
+  'Building': ['商业大厦', '居民楼', '写字楼', '政府大楼', '学校教学楼', '医院大楼', '工厂厂房', '酒店大楼'],
+};
+
+const generateResourcePOIData = (
+  categories: string[],
+  minLat: number, minLon: number, maxLat: number, maxLon: number
+): POI[] => {
+  const countPerCategory = 50;
+  const latSpread = maxLat - minLat;
+  const lonSpread = maxLon - minLon;
   const data: POI[] = [];
 
-  for (let i = 0; i < count; i++) {
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    let attributes: any = {};
+  for (const category of categories) {
+    const names = RESOURCE_CATEGORY_NAMES[category] || [`${category} 点位`];
+    for (let i = 0; i < countPerCategory; i++) {
+      let attributes: Record<string, any> = {};
 
-    // Generate attributes based on category
-    switch (category) {
-        case 'Retail':
-            attributes = {
-                rating: (3 + Math.random() * 2).toFixed(1),
-                openingHours: '10:00 AM - 9:00 PM',
-                tags: ['Clothing', 'Electronics', 'Gifts'].slice(0, Math.floor(Math.random() * 3) + 1)
-            };
-            break;
-        case 'Dining':
-            attributes = {
-                cuisine: ['Italian', 'Mexican', 'Asian Fusion', 'Burgers', 'Cafe'][Math.floor(Math.random() * 5)],
-                priceRange: ['$', '$$', '$$$', '$$$$'][Math.floor(Math.random() * 4)],
-                seats: 20 + Math.floor(Math.random() * 80)
-            };
-            break;
-        case 'Parks':
-            attributes = {
-                area: (1 + Math.random() * 10).toFixed(1),
-                hasPlayground: Math.random() > 0.5,
-                petFriendly: Math.random() > 0.3
-            };
-            break;
-        case 'Office':
-            attributes = {
-                floors: 5 + Math.floor(Math.random() * 40),
-                yearBuilt: 1980 + Math.floor(Math.random() * 44),
-                occupancy: 1 + Math.floor(Math.random() * 10)
-            };
-            break;
-        case 'Residential':
-            attributes = {
-                units: 10 + Math.floor(Math.random() * 200),
-                type: Math.random() > 0.5 ? 'Apartment' : 'Condo'
-            };
-            break;
+      switch (category) {
+        case 'PoliceCase':
+          attributes = {
+            level: ['一般', '重要', '紧急'][Math.floor(Math.random() * 3)],
+            status: ['处理中', '已结案', '待派遣'][Math.floor(Math.random() * 3)],
+            reportTime: `2026-04-0${Math.floor(Math.random() * 7) + 1} ${Math.floor(Math.random() * 24)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
+          };
+          break;
+        case 'Surveillance':
+          attributes = {
+            status: Math.random() > 0.2 ? '在线' : '离线',
+            resolution: ['1080P', '4K', '720P'][Math.floor(Math.random() * 3)],
+            installDate: `202${Math.floor(Math.random() * 6)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}`,
+          };
+          break;
+        case 'Building':
+          attributes = {
+            floors: Math.floor(Math.random() * 30) + 1,
+            usage: ['商业', '住宅', '办公', '综合'][Math.floor(Math.random() * 4)],
+            area: `${(Math.random() * 5000 + 500).toFixed(0)}㎡`,
+          };
+          break;
+      }
+
+      data.push({
+        id: `res-${category}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}-${i}`,
+        name: `${names[Math.floor(Math.random() * names.length)]} ${i + 1}`,
+        category,
+        lat: minLat + Math.random() * latSpread,
+        lng: minLon + Math.random() * lonSpread,
+        value: Math.floor(Math.random() * 10000) + 100,
+        attributes,
+      });
     }
-
-    data.push({
-      id: `poi-${i}`,
-      name: `${category} Spot ${i + 1}`,
-      category: category,
-      // Generate random position within the fixed "world" bounds
-      lat: baseLat + (Math.random() - 0.5) * spread,
-      lng: baseLon + (Math.random() - 0.5) * spread,
-      value: Math.floor(Math.random() * 10000) + 1000,
-      attributes
-    });
   }
-  
-  ALL_POIS = data;
-  console.log(`[API] Mock Database Initialized with ${count} records.`);
+
+  console.log(`[API] Generated ${data.length} resource POIs for categories: [${categories.join(', ')}]`);
+  return data;
 };
 
-export const fetchPOIs = async (
-  extent: [number, number, number, number],
-  options?: { text?: string; drawnExtent?: [number, number, number, number] }
+export const fetchPOIsByResourceCategories = async (
+  categories: string[],
+  extent: [number, number, number, number]
 ): Promise<POI[]> => {
-  if (ALL_POIS.length === 0) {
-    initDatabase();
-  }
-
   return new Promise((resolve) => {
     setTimeout(() => {
+      if (categories.length === 0) {
+        resolve([]);
+        return;
+      }
       const [minLon, minLat, maxLon, maxLat] = extent;
-      
-      let result = ALL_POIS.filter(p => 
-        p.lat >= minLat && p.lat <= maxLat &&
-        p.lng >= minLon && p.lng <= maxLon
-      );
-
-      if (options?.text) {
-        const lower = options.text.toLowerCase();
-        result = result.filter(p => 
-          p.name.toLowerCase().includes(lower) || 
-          p.category.toLowerCase().includes(lower) ||
-          (p.attributes && Object.values(p.attributes).some(v => String(v).toLowerCase().includes(lower)))
-        );
-      }
-
-      if (options?.drawnExtent) {
-        const [dMinLon, dMinLat, dMaxLon, dMaxLat] = options.drawnExtent;
-        result = result.filter(p => 
-          p.lat >= dMinLat && p.lat <= dMaxLat &&
-          p.lng >= dMinLon && p.lng <= dMaxLon
-        );
-      }
-
-      console.log(`[API] Query returned ${result.length} POIs within current view.`);
-      resolve(result);
-    }, 300);
+      const data = generateResourcePOIData(categories, minLat, minLon, maxLat, maxLon);
+      console.log(`[API] Resource query returned ${data.length} POIs.`);
+      resolve(data);
+    }, 400);
   });
-};
-
-export const queryPOIsByText = async (text: string): Promise<POI[]> => {
-  if (ALL_POIS.length === 0) {
-    initDatabase();
-  }
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lower = text.toLowerCase();
-      const result = ALL_POIS.filter(p => 
-        p.name.toLowerCase().includes(lower) || 
-        p.category.toLowerCase().includes(lower) ||
-        (p.attributes && Object.values(p.attributes).some(v => String(v).toLowerCase().includes(lower)))
-      );
-      console.log(`[API] Text query '${text}' returned ${result.length} POIs.`);
-      resolve(result);
-    }, 300);
-  });
-};
-
-export const queryPOIsByExtent = async (extent: [number, number, number, number]): Promise<POI[]> => {
-  return fetchPOIs(extent);
 };
