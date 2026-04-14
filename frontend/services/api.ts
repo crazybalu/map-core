@@ -66,18 +66,47 @@ const generateResourcePOIData = (
 
 export const fetchPOIsByResourceCategories = async (
   categories: string[],
-  extent: [number, number, number, number]
+  extent: [number, number, number, number],
+  keyword?: string
 ): Promise<POI[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (categories.length === 0) {
-        resolve([]);
-        return;
+  if (categories.length === 0) return [];
+
+  const buildingRequested = categories.includes('Building');
+  const otherCategories = categories.filter(c => c !== 'Building');
+
+  let results: POI[] = [];
+
+  // 1. Fetch from Backend for Building if requested
+  if (buildingRequested) {
+    try {
+      console.log('[API] Fetching real building data from backend with keyword:', keyword);
+      const url = keyword ? `/api/buildings?keyword=${encodeURIComponent(keyword)}` : '/api/buildings';
+      const response = await fetch(url);
+      const result = await response.json();
+      if (result.code === 200 && Array.isArray(result.data)) {
+        results = [...results, ...result.data];
       }
-      const [minLon, minLat, maxLon, maxLat] = extent;
-      const data = generateResourcePOIData(categories, minLat, minLon, maxLat, maxLon);
-      console.log(`[API] Resource query returned ${data.length} POIs.`);
-      resolve(data);
-    }, 400);
-  });
+    } catch (error) {
+      console.error('[API] Failed to fetch building data:', error);
+    }
+  }
+
+  // 2. Fetch Mock Data for other categories
+  if (otherCategories.length > 0) {
+    const [minLon, minLat, maxLon, maxLat] = extent;
+    let mockData = generateResourcePOIData(otherCategories, minLat, minLon, maxLat, maxLon);
+    
+    // Filter mock data locally by keyword if provided
+    if (keyword) {
+      const q = keyword.toLowerCase();
+      mockData = mockData.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        (p.attributes && Object.values(p.attributes).some(v => String(v).toLowerCase().includes(q)))
+      );
+    }
+    
+    results = [...results, ...mockData];
+  }
+
+  return results;
 };

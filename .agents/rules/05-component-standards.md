@@ -9,7 +9,7 @@ globs: "plugins/**/*.{ts,tsx}"
 ## 插件系统 (Plugin System) 原则
 1. **模块化与统一注册**：
    - 具有独立业务含义的功能被视为一个插件。
-   - 新插件开发必须在 `plugins/` 目录中建立相关功能文件，并统一在 `plugins/index.ts` 内部抛出及通过 `registerPlugins()` 在 `PluginRegistry` 完成注册。
+   - 新插件开发必须在 `plugins/` 目录中建立相关功能文件，并在 `plugins/index.ts` 内部抛出及通过 `registerPlugins()` 在 `PluginRegistry` 完成注册。
    - 每个插件须定义元数据：唯一的 ID/Name、展现的图标(Icon)、以及对应的 React UI Component 引用。
    
 2. **容器与窗口化引擎**：
@@ -17,13 +17,24 @@ globs: "plugins/**/*.{ts,tsx}"
    - 插件通过 LayoutEngine 挂载，被外部容器接管其坐标（X,Y）、尺寸（W,H）。
    - 须支持标题栏展示、关闭能力，内部保持自我的响应式结构调整。
 
+## 后端开发规范
+1. **统一响应包装**：
+   - 所有 Controller 接口必须返回统一的响应类 `Result<T>`，包含 `code`, `message`, `data` 字段。
+   - 成功返回 `Result.success(data)`，失败返回 `Result.error(message)`。
+
+2. **接口文档化**：
+   - 使用 `@Api`, `@ApiOperation` 等注解对 Controller 类和方法进行标注，以便生成 Swagger 接口文档。
+
+3. **异常处理**：
+   - 必须配置全局异常处理器 (`@RestControllerAdvice`)，捕获并封装业务异常，返回给前端。
+
 ## 开发与状态互动约束
 1. **禁止 Props 地狱**：
-   - 无论是 `ChartPlugin` 还是 `ListPlugin`，在需要大体积业务数据（例如多点的 POI、统计结果、搜索关键字）时不应该通过 props 层层获取。
+   - 无论是 `ChartPlugin` 还是 `ListPlugin`，在需要大体积业务数据时不应该通过 props 层层获取。
    - 所有的全局业务数据皆向 Zustand Global Store 发起订阅读取与改写。
    
 2. **MapCore 交互隔离**：
-   - 依赖对地图实施具体动作时（如点击列表进行视口飞行、放置 Marker、触发框选），必须应用 `MapCoreProvider` 暴漏给上来的 Context / 控制函数方法，而不要尝试在组件内单独 new Map。
+   - 依赖对地图实施具体动作时，必须应用 `MapCoreProvider` 暴露给上来的 Context / 控制函数方法，而不要尝试在组件内单独 new Map。
    
 3. **健壮与最佳实践**：
    - 使用现代级 React (Hook/FC) 结构编写组件。

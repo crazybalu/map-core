@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { usePoiStore } from '../stores/poiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useMapCapabilities } from '../core/MapCore';
-import { getPoiConfig } from '../config/resources';
+import { getPoiConfig, getSubCategoryById } from '../config/resources';
+import { fetchPOIsByResourceCategories } from '../services/api';
+import { transformExtent } from 'ol/proj';
 
 import { Search } from 'lucide-react';
 import { PluginContextProps } from '../types';
@@ -16,9 +18,39 @@ export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities 
 
   const { flyTo, addMarkers, clearMarkers, setActiveMarker } = useMapCapabilities();
 
-  // --- 3. bindPoiLayer: Sync data changes to the map layer via capabilities ---
+  // --- 3. Remote search when searchQuery changes ---
+  useEffect(() => {
+    // If query is empty, it might be triggered when user clears text.
+    // If query is not empty, we debounce the request.
+    const handler = setTimeout(async () => {
+      const { selectedResourceCategories, setPois } = usePoiStore.getState();
+      const mapExtent = useMapStore.getState().mapExtent;
+      
+      if (selectedResourceCategories.length > 0 && mapExtent) {
+        try {
+          const lonLatExtent = transformExtent(mapExtent, 'EPSG:3857', 'EPSG:4326') as [number, number, number, number];
+          const apiCategories = selectedResourceCategories
+            .map(id => getSubCategoryById(id))
+            .filter(Boolean)
+            .map(sub => sub!.apiCategory);
+
+          const data = await fetchPOIsByResourceCategories(apiCategories, lonLatExtent, searchQuery);
+          setPois(data);
+        } catch (error) {
+          console.error('[ListPlugin] Search failed:', error);
+        }
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // --- 4. bindPoiLayer: Sync data changes to the map layer via capabilities ---
   useEffect(() => {
     const baseData = searchResults !== null ? searchResults : pois;
+    
+    // Note: We still do a small local filter for visual responsiveness, 
+    // but the heavy lifting is now done by the API trigger above.
     const queryMatch = searchQuery.trim().toLowerCase();
     const filteredPois = queryMatch ? baseData.filter(p => 
       p.name.toLowerCase().includes(queryMatch) || 
