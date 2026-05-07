@@ -33,7 +33,7 @@ export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-4">
+    <div className="flex flex-col h-full bg-transparent text-slate-800 dark:text-slate-100 p-4">
       <div className="mb-4">
         <h3 className="text-lg font-semibold">Distribution</h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">Total POIs: {total}</p>
@@ -58,7 +58,7 @@ export const ChartPlugin: React.FC<PluginContextProps> = ({ config, capabilities
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-white dark:bg-slate-800 p-2 rounded shadow-lg border border-slate-200 dark:border-slate-700 text-sm">
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-2 rounded shadow-lg border border-white/20 dark:border-slate-700/50 text-sm text-slate-800 dark:text-slate-100">
                       <span className="font-semibold">{data.config.label}:</span> {data.count}
                     </div>
                   );

@@ -49,7 +49,7 @@ const DraggableWindow: React.FC<DraggableWindowProps> = ({ id, title, children, 
 
   return (
     <div
-      className="absolute bg-white dark:bg-slate-900 rounded shadow-[0_4px_20px_rgba(37,99,235,0.08)] border border-blue-100 dark:border-slate-700/50 overflow-hidden flex flex-col pointer-events-auto transition-shadow duration-200"
+      className="absolute bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-white/40 dark:border-slate-700/50 overflow-hidden flex flex-col pointer-events-auto transition-shadow duration-200"
       style={{
         left: pos.x,
         top: pos.y,
@@ -60,7 +60,7 @@ const DraggableWindow: React.FC<DraggableWindowProps> = ({ id, title, children, 
     >
       {/* Window Header */}
       <div 
-        className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 dark:from-slate-800 dark:to-slate-800 border-b border-blue-700 dark:border-slate-700 cursor-grab active:cursor-grabbing group"
+        className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-blue-600/90 to-blue-500/90 dark:from-slate-800/90 dark:to-slate-800/90 border-b border-blue-700/50 dark:border-slate-700/50 cursor-grab active:cursor-grabbing group"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

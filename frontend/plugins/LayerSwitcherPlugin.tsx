@@ -18,7 +18,7 @@ const LayerSwitcherPlugin: React.FC<PluginContextProps> = ({ config, capabilitie
   };
 
   return (
-    <div className="w-full h-full bg-white dark:bg-transparent flex flex-col p-2 overflow-y-auto">
+    <div className="w-full h-full bg-transparent flex flex-col p-2 overflow-y-auto">
       <div className="grid grid-cols-2 gap-3">
         {layers.map((layer) => (
           <button
@@ -27,8 +27,8 @@ const LayerSwitcherPlugin: React.FC<PluginContextProps> = ({ config, capabilitie
             className={`
               relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-200
               ${active === layer.id 
-                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-sm' 
-                : 'bg-slate-50 dark:bg-slate-800/50 border-transparent hover:bg-slate-100 dark:hover:bg-slate-700/80 hover:scale-105'
+                ? 'bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-blue-500 shadow-sm' 
+                : 'bg-white/30 dark:bg-slate-900/30 border-white/20 dark:border-slate-700/50 hover:bg-white/50 dark:hover:bg-slate-800/50 backdrop-blur-sm hover:scale-105'
               }
             `}
           >

@@ -71,27 +71,46 @@ export const fetchPOIsByResourceCategories = async (
 ): Promise<POI[]> => {
   if (categories.length === 0) return [];
 
+  const policeCaseRequested = categories.includes('PoliceCase');
+  const surveillanceRequested = categories.includes('Surveillance');
   const buildingRequested = categories.includes('Building');
-  const otherCategories = categories.filter(c => c !== 'Building');
+  const otherCategories = categories.filter(c => !['PoliceCase', 'Surveillance', 'Building'].includes(c));
 
   let results: POI[] = [];
 
-  // 1. Fetch from Backend for Building if requested
-  if (buildingRequested) {
+  const fetchFromApi = async (url: string) => {
     try {
-      console.log('[API] Fetching real building data from backend with keyword:', keyword);
-      const url = keyword ? `/api/buildings?keyword=${encodeURIComponent(keyword)}` : '/api/buildings';
+      console.log(`[API] Fetching real data from backend: ${url}`);
       const response = await fetch(url);
       const result = await response.json();
       if (result.code === 200 && Array.isArray(result.data)) {
-        results = [...results, ...result.data];
+        return result.data;
       }
     } catch (error) {
-      console.error('[API] Failed to fetch building data:', error);
+      console.error(`[API] Failed to fetch data from ${url}:`, error);
     }
+    return [];
+  };
+
+  // 1. Fetch from Backend for PoliceCase if requested
+  if (policeCaseRequested) {
+    const url = keyword ? `/api/cases?keyword=${encodeURIComponent(keyword)}` : '/api/cases';
+    results = [...results, ...(await fetchFromApi(url))];
   }
 
-  // 2. Fetch Mock Data for other categories
+  // 2. Fetch from Backend for Surveillance if requested
+  if (surveillanceRequested) {
+    const url = keyword ? `/api/surveillances?keyword=${encodeURIComponent(keyword)}` : '/api/surveillances';
+    results = [...results, ...(await fetchFromApi(url))];
+  }
+
+  // 3. Fetch from Backend for Building if requested
+  if (buildingRequested) {
+    const url = keyword ? `/api/buildings?keyword=${encodeURIComponent(keyword)}` : '/api/buildings';
+    results = [...results, ...(await fetchFromApi(url))];
+  }
+
+  // 4. Fetch Mock Data for other categories
   if (otherCategories.length > 0) {
     const [minLon, minLat, maxLon, maxLat] = extent;
     let mockData = generateResourcePOIData(otherCategories, minLat, minLon, maxLat, maxLon);

@@ -29,7 +29,7 @@
 
 ### 2. 核心模块设计
 *   **插件系统**：定义标准元数据，支持应用启动时动态加载与自动注册。
-*   **交互体验**：玻璃拟态（Glassmorphism）视觉风格，支持深/浅色模式切换。
+*   **交互体验**：采用毛玻璃（Glassmorphism）高阶视觉风格，支持深/浅色模式平滑切换，提供 Pro-Max 级的设计美学。
 
 ---
 
@@ -43,6 +43,22 @@
 | **AI 模型** | Google Gemini API | 核心智能分析能力 |
 | **可视化** | Recharts | 响应式图表展现 |
 | **样式引擎** | Tailwind CSS | 实用优先，支持动态主题 |
+
+---
+
+## 📁 目录结构
+
+| 目录/文件 | 说明 |
+| :--- | :--- |
+| `components/` | 基础的、公用性高的 React UI 组件存放地。 |
+| `config/` | 应用级别的所有配置、环境常量等配置选项所在位置。 |
+| `core/` | 系统 MapCore 层，包含 OpenLayers 实例封装与核心图层逻辑。 |
+| `plugins/` | 所有的业务功能插件模块（如 ChatPlugin、ChartPlugin 等），新增可视窗口与业务组件在此进行开发。 |
+| `services/` | 负责对后端系统发起外部交互或 API 请求。 |
+| `stores/` | 存放所有的状态管理单元（基于 Zustand 构建）。 |
+| `types.ts` | 全工程通用的 TypeScript Interface, Type 定义或相关 DTO 契约。 |
+| `vite.config.ts`| Vite 构建工具配置文件。 |
+| `App.tsx` | 前端应用的主入口组件与核心布局。 |
 
 ---
 

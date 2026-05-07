@@ -185,7 +185,7 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
   const hasChanges = JSON.stringify(pendingResourceCategories.sort()) !== JSON.stringify(selectedResourceCategories.sort());
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+    <div className="flex flex-col h-full bg-transparent text-slate-800 dark:text-slate-100">
       {/* Category Groups */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {RESOURCE_CATEGORIES.map((category) => {
@@ -195,10 +195,10 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
           const CategoryIcon = category.icon;
 
           return (
-            <div key={category.id} className="border-b border-slate-100 dark:border-slate-800 last:border-b-0">
+            <div key={category.id} className="border-b border-white/20 dark:border-slate-700/50 last:border-b-0">
               {/* Category Header */}
               <div
-                className="flex items-center gap-2 px-4 py-2.5 cursor-pointer select-none hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 cursor-pointer select-none hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors"
                 onClick={() => toggleCategory(category.id)}
               >
                 {/* Category-level checkbox */}
@@ -262,7 +262,7 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
 
       {/* Selected Tags */}
       {pendingCount > 0 && (
-        <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-800/30">
+        <div className="px-4 py-2 border-t border-white/20 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40">
           <div className="flex flex-wrap gap-1.5">
             {pendingResourceCategories.map(id => {
               const sub = getSubCategoryById(id);
@@ -285,10 +285,10 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
       )}
 
       {/* Footer Action Buttons */}
-      <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 flex items-center gap-3">
+      <div className="px-4 py-3 border-t border-white/20 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex items-center gap-3">
         <button
           onClick={handleClear}
-          className="flex-1 py-2 px-3 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          className="flex-1 py-2 px-3 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-700/50 border border-white/30 dark:border-slate-600/50 rounded hover:bg-white/80 dark:hover:bg-slate-600/80 transition-colors"
         >
           清空
         </button>

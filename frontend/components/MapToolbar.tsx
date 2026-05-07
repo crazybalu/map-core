@@ -49,36 +49,36 @@ const MapToolbar: React.FC = () => {
     }
   };
 
-  const btnClass = "p-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300";
+  const btnClass = "p-2 hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors text-slate-600 dark:text-slate-300";
   const getBtnClass = (isActive: boolean) =>
-    `p-2 transition-colors ${isActive ? 'bg-blue-500 text-white hover:bg-blue-600' : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`;
+    `p-2 transition-colors ${isActive ? 'bg-blue-500/80 backdrop-blur-sm text-white hover:bg-blue-600/80' : 'hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300'}`;
 
   return (
-    <div className="absolute bottom-24 right-6 z-40 flex flex-col bg-white/90 dark:bg-slate-800/90 backdrop-blur rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden pointer-events-auto">
+    <div className="absolute bottom-24 right-6 z-40 flex flex-col bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-xl border border-white/40 dark:border-slate-700/50 overflow-hidden pointer-events-auto">
       <button onClick={handleZoomIn} className={btnClass} title="Zoom In">
         <Plus className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={handleZoomOut} className={btnClass} title="Zoom Out">
         <Minus className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={handleHome} className={btnClass} title="Reset View">
         <Home className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={handleLocation} className={btnClass} title="My Location">
         <Crosshair className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={() => handleToggleDrawing('Circle')} className={getBtnClass(activeDrawingMode === 'Circle')} title="Circle Selection">
         <Circle className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={() => handleToggleDrawing('Box')} className={getBtnClass(activeDrawingMode === 'Box')} title="Box Selection">
         <Square className="w-5 h-5" />
       </button>
-      <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-full" />
+      <div className="h-[1px] bg-slate-200/50 dark:bg-slate-700/50 w-full" />
       <button onClick={() => {
         clearDrawing();
         // setSearchQuery('');
