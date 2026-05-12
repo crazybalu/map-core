@@ -92,22 +92,31 @@ export const fetchPOIsByResourceCategories = async (
     return [];
   };
 
+  // Helper to build URL with keyword and extent
+  const buildUrl = (basePath: string) => {
+    const [minLng, minLat, maxLng, maxLat] = extent;
+    const url = new URL(basePath, window.location.origin);
+    if (keyword) url.searchParams.append('keyword', keyword);
+    url.searchParams.append('minLng', minLng.toString());
+    url.searchParams.append('minLat', minLat.toString());
+    url.searchParams.append('maxLng', maxLng.toString());
+    url.searchParams.append('maxLat', maxLat.toString());
+    return url.pathname + url.search;
+  };
+
   // 1. Fetch from Backend for PoliceCase if requested
   if (policeCaseRequested) {
-    const url = keyword ? `/api/cases?keyword=${encodeURIComponent(keyword)}` : '/api/cases';
-    results = [...results, ...(await fetchFromApi(url))];
+    results = [...results, ...(await fetchFromApi(buildUrl('/api/cases')))];
   }
 
   // 2. Fetch from Backend for Surveillance if requested
   if (surveillanceRequested) {
-    const url = keyword ? `/api/surveillances?keyword=${encodeURIComponent(keyword)}` : '/api/surveillances';
-    results = [...results, ...(await fetchFromApi(url))];
+    results = [...results, ...(await fetchFromApi(buildUrl('/api/surveillances')))];
   }
 
   // 3. Fetch from Backend for Building if requested
   if (buildingRequested) {
-    const url = keyword ? `/api/buildings?keyword=${encodeURIComponent(keyword)}` : '/api/buildings';
-    results = [...results, ...(await fetchFromApi(url))];
+    results = [...results, ...(await fetchFromApi(buildUrl('/api/buildings')))];
   }
 
   // 4. Fetch Mock Data for other categories

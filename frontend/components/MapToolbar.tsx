@@ -54,7 +54,7 @@ const MapToolbar: React.FC = () => {
     `p-2 transition-colors ${isActive ? 'bg-blue-500/80 backdrop-blur-sm text-white hover:bg-blue-600/80' : 'hover:bg-white/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300'}`;
 
   return (
-    <div className="absolute bottom-24 right-6 z-40 flex flex-col bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-xl border border-white/40 dark:border-slate-700/50 overflow-hidden pointer-events-auto">
+    <div className="absolute bottom-24 right-[324px] z-40 flex flex-col bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-xl shadow-xl border border-white/40 dark:border-slate-700/50 overflow-hidden pointer-events-auto">
       <button onClick={handleZoomIn} className={btnClass} title="Zoom In">
         <Plus className="w-5 h-5" />
       </button>

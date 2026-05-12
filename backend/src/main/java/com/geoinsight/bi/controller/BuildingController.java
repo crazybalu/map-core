@@ -23,9 +23,13 @@ public class BuildingController {
     @ApiOperation("搜索/查询所有建筑物")
     @GetMapping
     public Result<List<BuildingDTO>> getAllBuildings(
-            @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Double minLng,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Double minLat,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Double maxLng,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Double maxLat
     ) {
-        List<BuildingDTO> buildings = buildingService.searchBuildings(keyword);
+        List<BuildingDTO> buildings = buildingService.searchBuildings(keyword, minLng, minLat, maxLng, maxLat);
         return Result.success(buildings);
     }
 }

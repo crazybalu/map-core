@@ -4,7 +4,6 @@ import { BarChart3, List, Layout, Layers, FolderKanban } from 'lucide-react';
 import { ChartPlugin } from '../plugins/ChartPlugin';
 import { ListPlugin } from '../plugins/ListPlugin';
 import LayoutPlugin from '../plugins/LayoutPlugin';
-import LayerSwitcherPlugin from '../plugins/LayerSwitcherPlugin';
 import { ResourcePanelPlugin } from '../plugins/ResourcePanelPlugin';
 
 export const getSafeInitialLayout = (): PluginInstanceConfig[] => {
@@ -16,42 +15,15 @@ export const getSafeInitialLayout = (): PluginInstanceConfig[] => {
       id: 'resource-panel-1',
       type: 'resource-panel',
       title: '资源面板',
-      layout: { x: 20, y: 20, w: 280, h: 420 }
+      layout: { x: 0, y: 0, w: 280, h: h }
     },
     {
       id: 'list-1',
       type: 'poi-list',
-      title: 'Location Details',
-      layout: { x: 320, y: 20, w: 300, h: 400 }
+      title: '资源列表',
+      layout: { x: w - 300, y: 0, w: 300, h: h }
     },
-    // {
-    //   id: 'chart-1',
-    //   type: 'poi-chart',
-    //   title: 'Category Distribution',
-    //   layout: { x: 20, y: 20, w: 300, h: 300 }
-    // },
-    // {
-    //   id: 'chatbot-floating',
-    //   type: 'ai-chat',
-    //   title: 'AI Assistant',
-    //   layout: { 
-    //       x: Math.max(340, w - 380), 
-    //       y: Math.max(80, h - 550), 
-    //       w: 350, 
-    //       h: 500 
-    //   }
-    // },
-    // {
-    //   id: 'layers-floating',
-    //   type: 'layer-switcher',
-    //   title: 'Map Layers',
-    //   layout: {
-    //     x: Math.max(340, w - 320),
-    //     y: 20,
-    //     w: 280,
-    //     h: 220
-    //   }
-    // }
+
   ];
 };
 

@@ -23,11 +23,9 @@ public class PoliceCaseService {
                 .collect(Collectors.toList());
     }
 
-    public List<PoliceCaseDTO> searchPoliceCases(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllPoliceCases();
-        }
-        return policeCaseRepository.findByNameContainingIgnoreCase(keyword).stream()
+    public List<PoliceCaseDTO> searchPoliceCases(String keyword, Double minLng, Double minLat, Double maxLng, Double maxLat) {
+        String finalKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        return policeCaseRepository.searchCasesWithExtent(finalKeyword, minLng, minLat, maxLng, maxLat).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

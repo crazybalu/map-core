@@ -23,11 +23,9 @@ public class SurveillanceService {
                 .collect(Collectors.toList());
     }
 
-    public List<SurveillanceDTO> searchSurveillances(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllSurveillances();
-        }
-        return surveillanceRepository.findByNameContainingIgnoreCase(keyword).stream()
+    public List<SurveillanceDTO> searchSurveillances(String keyword, Double minLng, Double minLat, Double maxLng, Double maxLat) {
+        String finalKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        return surveillanceRepository.searchSurveillancesWithExtent(finalKeyword, minLng, minLat, maxLng, maxLat).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

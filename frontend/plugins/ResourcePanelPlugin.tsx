@@ -130,12 +130,13 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
       return;
     }
 
-    const mapExtent = useMapStore.getState().mapExtent;
-    if (!mapExtent) return;
+    const mapState = useMapStore.getState();
+    const extentToUse = mapState.drawnExtent || mapState.mapExtent;
+    if (!extentToUse) return;
 
     setIsLoading(true);
     try {
-      const lonLatExtent = transformExtent(mapExtent, 'EPSG:3857', 'EPSG:4326') as [number, number, number, number];
+      const lonLatExtent = transformExtent(extentToUse, 'EPSG:3857', 'EPSG:4326') as [number, number, number, number];
 
       // Map subcategory IDs to API category keys
       const apiCategories = pendingResourceCategories
@@ -171,6 +172,16 @@ export const ResourcePanelPlugin: React.FC<PluginContextProps> = ({ config, capa
       setIsLoading(false);
     }
   }, [pendingResourceCategories, confirmResourceSelection, setPois, setSearchResults, addMarkers, clearMarkers]);
+
+  const drawnExtent = useMapStore(state => state.drawnExtent);
+
+  // Auto-refresh when drawnExtent changes
+  useEffect(() => {
+    if (drawnExtent && pendingResourceCategories.length > 0) {
+      handleConfirm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawnExtent]);
 
   // Clear all selections and data
   const handleClear = useCallback(() => {

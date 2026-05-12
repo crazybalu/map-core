@@ -24,9 +24,13 @@ public class PoliceCaseController {
     @ApiOperation("搜索/查询所有警情")
     @GetMapping
     public Result<List<PoliceCaseDTO>> getAllPoliceCases(
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Double minLng,
+            @RequestParam(required = false) Double minLat,
+            @RequestParam(required = false) Double maxLng,
+            @RequestParam(required = false) Double maxLat
     ) {
-        List<PoliceCaseDTO> cases = policeCaseService.searchPoliceCases(keyword);
+        List<PoliceCaseDTO> cases = policeCaseService.searchPoliceCases(keyword, minLng, minLat, maxLng, maxLat);
         return Result.success(cases);
     }
 }

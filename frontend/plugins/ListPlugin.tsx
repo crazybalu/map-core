@@ -19,6 +19,8 @@ export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities 
   const { flyTo, addMarkers, clearMarkers, setActiveMarker } = useMapCapabilities();
 
   const [activeTab, setActiveTab] = useState<string>('');
+  // 用于稳定保持 tab 显示顺序，避免因数据更新导致顺序改变
+  const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [tabQueries, setTabQueries] = useState<Record<string, string>>({});
 
   // --- 1. Group POIs (unfiltered) to determine tabs ---
@@ -33,12 +35,20 @@ export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities 
     return groups;
   }, [pois]);
 
-  // Set initial active tab when data arrives
+  // 当数据到达时，初始化 activeTab 并维护稳定的 tabOrder
   useEffect(() => {
     const categories = Object.keys(groupedPois);
-    if (!activeTab && categories.length > 0) {
+    if (categories.length === 0) return;
+
+    // 将新出现的分类追加到 tabOrder 末尾（保持已有顺序不变）
+    setTabOrder(prev => {
+      const newCategories = categories.filter(c => !prev.includes(c));
+      return newCategories.length > 0 ? [...prev, ...newCategories] : prev;
+    });
+
+    if (!activeTab) {
       setActiveTab(categories[0]);
-    } else if (activeTab && !categories.includes(activeTab) && categories.length > 0) {
+    } else if (!categories.includes(activeTab)) {
       setActiveTab(categories[0]);
     }
   }, [groupedPois, activeTab]);
@@ -115,9 +125,10 @@ export const ListPlugin: React.FC<PluginContextProps> = ({ config, capabilities 
     <div className="flex flex-col h-full bg-transparent text-slate-800 dark:text-slate-100">
       
       {/* Tab Bar */}
-      {Object.keys(groupedPois).length > 0 && (
+      {tabOrder.filter(c => groupedPois[c]).length > 0 && (
         <div className="flex border-b border-white/20 dark:border-slate-700/50 overflow-x-auto custom-scrollbar shrink-0 bg-white/40 dark:bg-slate-800/40 backdrop-blur-md">
-          {Object.keys(groupedPois).map(category => {
+          {/* 按稳定的 tabOrder 顺序渲染，避免数据更新后 tab 顺序改变 */}
+          {tabOrder.filter(c => groupedPois[c]).map(category => {
             const config = getPoiConfig(category);
             const isActive = activeTab === category;
             const count = groupedPois[category].length;

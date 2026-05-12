@@ -24,9 +24,13 @@ public class SurveillanceController {
     @ApiOperation("搜索/查询所有监控")
     @GetMapping
     public Result<List<SurveillanceDTO>> getAllSurveillances(
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Double minLng,
+            @RequestParam(required = false) Double minLat,
+            @RequestParam(required = false) Double maxLng,
+            @RequestParam(required = false) Double maxLat
     ) {
-        List<SurveillanceDTO> surveillances = surveillanceService.searchSurveillances(keyword);
+        List<SurveillanceDTO> surveillances = surveillanceService.searchSurveillances(keyword, minLng, minLat, maxLng, maxLat);
         return Result.success(surveillances);
     }
 }

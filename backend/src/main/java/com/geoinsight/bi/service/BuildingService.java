@@ -23,11 +23,9 @@ public class BuildingService {
                 .collect(Collectors.toList());
     }
 
-    public List<BuildingDTO> searchBuildings(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllBuildings();
-        }
-        return buildingRepository.findByNameContainingIgnoreCase(keyword).stream()
+    public List<BuildingDTO> searchBuildings(String keyword, Double minLng, Double minLat, Double maxLng, Double maxLat) {
+        String finalKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        return buildingRepository.searchBuildingsWithExtent(finalKeyword, minLng, minLat, maxLng, maxLat).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
