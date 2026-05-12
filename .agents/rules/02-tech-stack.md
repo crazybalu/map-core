@@ -20,7 +20,7 @@ globs: "*"
 ## 后端技术栈 (Backend)
 - **核心框架**：Spring Boot 2.7.14
 - **持久层**：Spring Data JPA
-- **数据库**：PostgreSQL 10
+- **数据库**：PostgreSQL 13
 - **项目管理**：Maven 3.x
 - **开发语言**：Java 8
 - **辅助工具**：Lombok, Swagger/Knife4j (用于 API 文档)

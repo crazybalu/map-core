@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgis_25_sample
+    url: jdbc:postgresql://192.168.18.240:54322/stybss?currentSchema=mapcode,public
     username: postgres
-    password: 123456
+    password: postgres
     driver-class-name: org.postgresql.Driver
   
   jpa:
